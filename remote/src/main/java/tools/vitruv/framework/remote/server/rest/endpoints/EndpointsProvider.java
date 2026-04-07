@@ -15,6 +15,7 @@ import tools.vitruv.framework.remote.server.rest.PutEndpoint;
 import tools.vitruv.framework.remote.server.rest.endpoints.branch.CreateBranchEndpoint;
 import tools.vitruv.framework.remote.server.rest.endpoints.branch.DeleteBranchEndpoint;
 import tools.vitruv.framework.remote.server.rest.endpoints.branch.ListBranchesEndpoint;
+import tools.vitruv.framework.remote.server.rest.endpoints.branch.SwitchBranchEndpoint;
 import tools.vitruv.framework.vsum.VirtualModel;
 import tools.vitruv.framework.vsum.branch.BranchManager;
 
@@ -115,6 +116,14 @@ public class EndpointsProvider {
             defaultEndpoints.putEndpoint(),
             defaultEndpoints.patchEndpoint(),
             new DeleteBranchEndpoint(branchManager)));
+    result.add(
+        new PathEndointCollector(
+            EndpointPath.BRANCH_SWITCH,
+            defaultEndpoints.getEndpoint(),
+            new SwitchBranchEndpoint(branchManager, mapper),
+            defaultEndpoints.putEndpoint(),
+            defaultEndpoints.patchEndpoint(),
+            defaultEndpoints.deleteEndpoint()));
 
     return result;
   }

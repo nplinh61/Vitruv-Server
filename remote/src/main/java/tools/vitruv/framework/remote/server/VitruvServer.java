@@ -9,6 +9,7 @@ import tools.vitruv.framework.remote.server.rest.PathEndointCollector;
 import tools.vitruv.framework.remote.server.rest.endpoints.EndpointsProvider;
 import tools.vitruv.framework.vsum.VirtualModel;
 import tools.vitruv.framework.vsum.branch.BranchManager;
+import tools.vitruv.framework.vsum.branch.handler.PostCheckoutHandler;
 
 /**
  * A Vitruvius server wraps a REST-based API around a {@link VirtualModel VSUM}. Therefore, it takes
@@ -71,6 +72,7 @@ public class VitruvServer {
       BranchManager branchManager) throws IOException {
     VirtualModel model = modelInitializer.init();
     JsonMapper mapper = new JsonMapper(model.getFolder());
+    branchManager.setPostCheckoutHandler(new PostCheckoutHandler(model));
     List<PathEndointCollector> endpoints =
         EndpointsProvider.getAllEndpoints(model, mapper, branchManager);
     this.server = new VitruvJavaHttpServer(hostOrIp, port, endpoints);
