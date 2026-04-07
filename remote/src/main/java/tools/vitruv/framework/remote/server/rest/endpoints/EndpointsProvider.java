@@ -12,6 +12,7 @@ import tools.vitruv.framework.remote.server.rest.PatchEndpoint;
 import tools.vitruv.framework.remote.server.rest.PathEndointCollector;
 import tools.vitruv.framework.remote.server.rest.PostEndpoint;
 import tools.vitruv.framework.remote.server.rest.PutEndpoint;
+import tools.vitruv.framework.remote.server.rest.endpoints.branch.CreateBranchEndpoint;
 import tools.vitruv.framework.remote.server.rest.endpoints.branch.ListBranchesEndpoint;
 import tools.vitruv.framework.vsum.VirtualModel;
 import tools.vitruv.framework.vsum.branch.BranchManager;
@@ -109,7 +110,7 @@ public class EndpointsProvider {
         new PathEndointCollector(
             EndpointPath.BRANCH,
             new ListBranchesEndpoint(branchManager, mapper),
-            defaultEndpoints.postEndpoint(),
+            new CreateBranchEndpoint(branchManager, mapper),
             defaultEndpoints.putEndpoint(),
             defaultEndpoints.patchEndpoint(),
             defaultEndpoints.deleteEndpoint()));
