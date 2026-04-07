@@ -1,6 +1,7 @@
 package tools.vitruv.framework.remote.server.rest;
 
 import static java.net.HttpURLConnection.HTTP_BAD_METHOD;
+import static java.net.HttpURLConnection.HTTP_BAD_REQUEST;
 import static java.net.HttpURLConnection.HTTP_INTERNAL_ERROR;
 
 import tools.vitruv.framework.remote.server.exception.ServerHaltingException;
@@ -25,6 +26,17 @@ public interface RestEndpoint {
    */
   default ServerHaltingException notFound(String msg) {
     return new ServerHaltingException(HTTP_BAD_METHOD, msg);
+  }
+
+  /**
+   * Halts the execution of the requested endpoint and returns the status code BAD REQUEST with the
+   * given message.
+   *
+   * @param msg A message containing the reason of halting the execution.
+   * @return A ServerHaltingException representing the BAD REQUEST error.
+   */
+  default ServerHaltingException badRequest(String msg) {
+    return new ServerHaltingException(HTTP_BAD_REQUEST, msg);
   }
 
   /**

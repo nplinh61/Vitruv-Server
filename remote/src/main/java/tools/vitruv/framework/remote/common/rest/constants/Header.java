@@ -14,6 +14,9 @@ public final class Header {
   /** The View-Type header key. */
   public static final String VIEW_TYPE = "View-Type";
 
+  /** The Branch-Name header key. */
+  public static final String BRANCH_NAME = "Branch-Name";
+
   private Header() throws InstantiationException {
     throw new InstantiationException("Cannot be instantiated");
   }
