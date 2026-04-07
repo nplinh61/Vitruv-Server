@@ -23,6 +23,12 @@ public final class EndpointPath {
   /** The endpoint path for deriving changes. */
   public static final String CHANGE_DERIVING = "/vsum/view/derive-changes";
 
+  /** The endpoint path for branch management (list, create, delete). */
+  public static final String BRANCH = "/vsum/branch";
+
+  /** The endpoint path for switching the active branch. */
+  public static final String BRANCH_SWITCH = "/vsum/branch/switch";
+
   private EndpointPath() throws InstantiationException {
     throw new InstantiationException("Cannot be instantiated");
   }

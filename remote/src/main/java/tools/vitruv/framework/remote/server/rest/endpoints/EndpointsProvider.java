@@ -12,7 +12,9 @@ import tools.vitruv.framework.remote.server.rest.PatchEndpoint;
 import tools.vitruv.framework.remote.server.rest.PathEndointCollector;
 import tools.vitruv.framework.remote.server.rest.PostEndpoint;
 import tools.vitruv.framework.remote.server.rest.PutEndpoint;
+import tools.vitruv.framework.remote.server.rest.endpoints.branch.ListBranchesEndpoint;
 import tools.vitruv.framework.vsum.VirtualModel;
+import tools.vitruv.framework.vsum.branch.BranchManager;
 
 /** Provides all REST endpoints for the Vitruv server. */
 public class EndpointsProvider {
@@ -84,6 +86,32 @@ public class EndpointsProvider {
             defaultEndpoints.postEndpoint(),
             defaultEndpoints.putEndpoint(),
             new ChangeDerivingEndpoint(mapper),
+            defaultEndpoints.deleteEndpoint()));
+
+    return result;
+  }
+
+  /**
+   * Creates and returns all REST endpoints, including branching endpoints backed by the
+   * given {@link BranchManager}.
+   *
+   * @param virtualModel the virtual model to use for V-SUM endpoints.
+   * @param mapper the JSON mapper to use.
+   * @param branchManager the branch manager for branch lifecycle endpoints.
+   * @return a list of all REST endpoints.
+   */
+  public static List<PathEndointCollector> getAllEndpoints(
+      VirtualModel virtualModel, JsonMapper mapper, BranchManager branchManager) {
+    List<PathEndointCollector> result = getAllEndpoints(virtualModel, mapper);
+    var defaultEndpoints = getDefaultEndpoints();
+
+    result.add(
+        new PathEndointCollector(
+            EndpointPath.BRANCH,
+            new ListBranchesEndpoint(branchManager, mapper),
+            defaultEndpoints.postEndpoint(),
+            defaultEndpoints.putEndpoint(),
+            defaultEndpoints.patchEndpoint(),
             defaultEndpoints.deleteEndpoint()));
 
     return result;
