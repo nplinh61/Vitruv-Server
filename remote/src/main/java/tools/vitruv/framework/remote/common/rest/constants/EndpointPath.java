@@ -29,6 +29,12 @@ public final class EndpointPath {
   /** The endpoint path for switching the active branch. */
   public static final String BRANCH_SWITCH = "/vsum/branch/switch";
 
+  /** The endpoint path for retrieving the branch topology. */
+  public static final String BRANCH_TOPOLOGY = "/vsum/branch/topology";
+
+  /** The endpoint path for retrieving the state of a single branch. */
+  public static final String BRANCH_STATE = "/vsum/branch/state";
+
   private EndpointPath() throws InstantiationException {
     throw new InstantiationException("Cannot be instantiated");
   }
