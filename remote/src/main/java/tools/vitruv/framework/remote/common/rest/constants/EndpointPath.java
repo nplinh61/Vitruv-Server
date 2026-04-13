@@ -35,6 +35,30 @@ public final class EndpointPath {
   /** The endpoint path for retrieving the state of a single branch. */
   public static final String BRANCH_STATE = "/vsum/branch/state";
 
+  /** The endpoint path for committing model changes. */
+  public static final String COMMIT = "/vsum/commit";
+
+  /** The endpoint path for merging branches. */
+  public static final String MERGE = "/vsum/merge";
+
+  /** The endpoint path for reading the semantic changelog of a commit. */
+  public static final String CHANGELOG = "/vsum/changelog";
+
+  /** The endpoint path for listing and creating versions. */
+  public static final String VERSION = "/vsum/version";
+
+  /** The endpoint path for getting and deleting a single version. */
+  public static final String VERSION_DETAIL = "/vsum/version/detail";
+
+  /** The endpoint path for previewing a rollback to a version. */
+  public static final String VERSION_ROLLBACK_PREVIEW = "/vsum/version/rollback/preview";
+
+  /** The endpoint path for confirming and executing a rollback. */
+  public static final String VERSION_ROLLBACK_CONFIRM = "/vsum/version/rollback/confirm";
+
+  /** The endpoint path for creating a branch from a version. */
+  public static final String VERSION_BRANCH = "/vsum/version/branch";
+
   private EndpointPath() throws InstantiationException {
     throw new InstantiationException("Cannot be instantiated");
   }

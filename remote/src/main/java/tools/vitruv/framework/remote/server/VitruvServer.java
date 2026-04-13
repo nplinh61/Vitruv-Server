@@ -9,7 +9,10 @@ import tools.vitruv.framework.remote.server.rest.PathEndointCollector;
 import tools.vitruv.framework.remote.server.rest.endpoints.EndpointsProvider;
 import tools.vitruv.framework.vsum.VirtualModel;
 import tools.vitruv.framework.vsum.branch.BranchManager;
+import tools.vitruv.framework.vsum.branch.CommitManager;
+import tools.vitruv.framework.vsum.branch.MergeManager;
 import tools.vitruv.framework.vsum.branch.handler.PostCheckoutHandler;
+import tools.vitruv.framework.vsum.versioning.VersioningService;
 
 /**
  * A Vitruvius server wraps a REST-based API around a {@link VirtualModel VSUM}. Therefore, it takes
@@ -99,6 +102,130 @@ public class VitruvServer {
   public VitruvServer(VirtualModelInitializer modelInitializer,
       BranchManager branchManager) throws IOException {
     this(modelInitializer, DefaultConnectionSettings.STD_PORT, branchManager);
+  }
+
+  /**
+   * Creates a new {@link VitruvServer} with branching and commit support.
+   *
+   * @param modelInitializer the initializer which creates a {@link VirtualModel}.
+   * @param port the port to open the server on.
+   * @param hostOrIp the host name or IP address to bind to.
+   * @param branchManager the branch manager for branch lifecycle endpoints.
+   * @param commitManager the commit manager for commit endpoints.
+   */
+  public VitruvServer(VirtualModelInitializer modelInitializer, int port, String hostOrIp,
+      BranchManager branchManager, CommitManager commitManager) throws IOException {
+    VirtualModel model = modelInitializer.init();
+    JsonMapper mapper = new JsonMapper(model.getFolder());
+    branchManager.setPostCheckoutHandler(new PostCheckoutHandler(model));
+    List<PathEndointCollector> endpoints =
+        EndpointsProvider.getAllEndpoints(model, mapper, branchManager, commitManager);
+    this.server = new VitruvJavaHttpServer(hostOrIp, port, endpoints);
+  }
+
+  /**
+   * Creates a new {@link VitruvServer} with branching and commit support on the default host.
+   *
+   * @param modelInitializer the initializer which creates a {@link VirtualModel}.
+   * @param port the port to open the server on.
+   * @param branchManager the branch manager for branch lifecycle endpoints.
+   * @param commitManager the commit manager for commit endpoints.
+   */
+  public VitruvServer(VirtualModelInitializer modelInitializer, int port,
+      BranchManager branchManager, CommitManager commitManager) throws IOException {
+    this(modelInitializer, port, DefaultConnectionSettings.STD_HOST, branchManager, commitManager);
+  }
+
+  /**
+   * Creates a new {@link VitruvServer} with branching and commit support on the default host
+   * and port 8080.
+   *
+   * @param modelInitializer the initializer which creates a {@link VirtualModel}.
+   * @param branchManager the branch manager for branch lifecycle endpoints.
+   * @param commitManager the commit manager for commit endpoints.
+   */
+  public VitruvServer(VirtualModelInitializer modelInitializer,
+      BranchManager branchManager, CommitManager commitManager) throws IOException {
+    this(modelInitializer, DefaultConnectionSettings.STD_PORT, branchManager, commitManager);
+  }
+
+  /**
+   * Creates a new {@link VitruvServer} with branching, commit, and merge support.
+   *
+   * @param modelInitializer the initializer which creates a {@link VirtualModel}.
+   * @param port the port to open the server on.
+   * @param hostOrIp the host name or IP address to bind to.
+   * @param branchManager the branch manager for branch lifecycle endpoints.
+   * @param commitManager the commit manager for commit endpoints.
+   * @param mergeManager the merge manager for merge endpoints.
+   */
+  public VitruvServer(VirtualModelInitializer modelInitializer, int port, String hostOrIp,
+      BranchManager branchManager, CommitManager commitManager,
+      MergeManager mergeManager) throws IOException {
+    VirtualModel model = modelInitializer.init();
+    JsonMapper mapper = new JsonMapper(model.getFolder());
+    branchManager.setPostCheckoutHandler(new PostCheckoutHandler(model));
+    List<PathEndointCollector> endpoints =
+        EndpointsProvider.getAllEndpoints(model, mapper, branchManager, commitManager,
+            mergeManager);
+    this.server = new VitruvJavaHttpServer(hostOrIp, port, endpoints);
+  }
+
+  /**
+   * Creates a new {@link VitruvServer} with branching, commit, and merge support on the
+   * default host and port 8080.
+   *
+   * @param modelInitializer the initializer which creates a {@link VirtualModel}.
+   * @param branchManager the branch manager for branch lifecycle endpoints.
+   * @param commitManager the commit manager for commit endpoints.
+   * @param mergeManager the merge manager for merge endpoints.
+   */
+  public VitruvServer(VirtualModelInitializer modelInitializer,
+      BranchManager branchManager, CommitManager commitManager,
+      MergeManager mergeManager) throws IOException {
+    this(modelInitializer, DefaultConnectionSettings.STD_PORT,
+        DefaultConnectionSettings.STD_HOST, branchManager, commitManager, mergeManager);
+  }
+
+  /**
+   * Creates a new {@link VitruvServer} with branching, commit, merge, and versioning support.
+   *
+   * @param modelInitializer the initializer which creates a {@link VirtualModel}.
+   * @param port the port to open the server on.
+   * @param hostOrIp the host name or IP address to bind to.
+   * @param branchManager the branch manager for branch lifecycle endpoints.
+   * @param commitManager the commit manager for commit endpoints.
+   * @param mergeManager the merge manager for merge endpoints.
+   * @param versioningService the versioning service for version endpoints.
+   */
+  public VitruvServer(VirtualModelInitializer modelInitializer, int port, String hostOrIp,
+      BranchManager branchManager, CommitManager commitManager,
+      MergeManager mergeManager, VersioningService versioningService) throws IOException {
+    VirtualModel model = modelInitializer.init();
+    JsonMapper mapper = new JsonMapper(model.getFolder());
+    branchManager.setPostCheckoutHandler(new PostCheckoutHandler(model));
+    List<PathEndointCollector> endpoints =
+        EndpointsProvider.getAllEndpoints(model, mapper, branchManager, commitManager,
+            mergeManager, versioningService);
+    this.server = new VitruvJavaHttpServer(hostOrIp, port, endpoints);
+  }
+
+  /**
+   * Creates a new {@link VitruvServer} with branching, commit, merge, and versioning support
+   * on the default host and port 8080.
+   *
+   * @param modelInitializer the initializer which creates a {@link VirtualModel}.
+   * @param branchManager the branch manager for branch lifecycle endpoints.
+   * @param commitManager the commit manager for commit endpoints.
+   * @param mergeManager the merge manager for merge endpoints.
+   * @param versioningService the versioning service for version endpoints.
+   */
+  public VitruvServer(VirtualModelInitializer modelInitializer,
+      BranchManager branchManager, CommitManager commitManager,
+      MergeManager mergeManager, VersioningService versioningService) throws IOException {
+    this(modelInitializer, DefaultConnectionSettings.STD_PORT,
+        DefaultConnectionSettings.STD_HOST, branchManager, commitManager,
+        mergeManager, versioningService);
   }
 
   /** Starts the Vitruvius server. */

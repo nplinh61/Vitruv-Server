@@ -17,6 +17,12 @@ public final class Header {
   /** The Branch-Name header key. */
   public static final String BRANCH_NAME = "Branch-Name";
 
+  /** The Commit-Sha header key (7-character short SHA). */
+  public static final String COMMIT_SHA = "Commit-Sha";
+
+  /** The Version-Id header key. */
+  public static final String VERSION_ID = "Version-Id";
+
   private Header() throws InstantiationException {
     throw new InstantiationException("Cannot be instantiated");
   }

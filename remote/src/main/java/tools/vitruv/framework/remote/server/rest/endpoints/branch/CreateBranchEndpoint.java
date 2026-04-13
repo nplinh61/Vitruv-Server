@@ -1,6 +1,7 @@
 package tools.vitruv.framework.remote.server.rest.endpoints.branch;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
+import java.io.IOException;
 import tools.vitruv.framework.remote.common.json.JsonMapper;
 import tools.vitruv.framework.remote.common.rest.constants.ContentType;
 import tools.vitruv.framework.remote.server.exception.ServerHaltingException;
@@ -60,6 +61,8 @@ public class CreateBranchEndpoint implements PostEndpoint {
       return mapper.serialize(response);
     } catch (BranchOperationException | JsonProcessingException e) {
       throw internalServerError(e.getMessage());
+    } catch (IOException e) {
+      throw new RuntimeException(e);
     }
   }
 }

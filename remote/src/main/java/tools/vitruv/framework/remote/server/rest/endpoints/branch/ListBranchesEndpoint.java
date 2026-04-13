@@ -8,25 +8,19 @@ import tools.vitruv.framework.remote.server.exception.ServerHaltingException;
 import tools.vitruv.framework.remote.server.http.HttpWrapper;
 import tools.vitruv.framework.remote.server.rest.GetEndpoint;
 import tools.vitruv.framework.vsum.branch.BranchManager;
+import tools.vitruv.framework.vsum.branch.data.BranchMetadata;
+import tools.vitruv.framework.vsum.branch.data.BranchState;
 import tools.vitruv.framework.vsum.branch.exception.BranchOperationException;
 
 /**
  * {@code GET /vsum/branch}
  *
- * <p>Returns a JSON array of all branches known to Vitruvius, each with its name, lifecycle
- * state, parent branch, and timestamps.
+ * <p>Returns a JSON array of branch names, excluding deleted branches.
+ * Analogous to {@code git branch}.
  *
  * <p>Example response:
  * <pre>
- * [
- *   {
- *     "name": "master",
- *     "state": "ACTIVE",
- *     "parentBranch": "master",
- *     "createdAt": "2026-04-07T11:45:22",
- *     "lastModified": "2026-04-07T11:47:21"
- *   }
- * ]
+ * ["master", "feature/my-feature"]
  * </pre>
  */
 public class ListBranchesEndpoint implements GetEndpoint {
@@ -48,11 +42,12 @@ public class ListBranchesEndpoint implements GetEndpoint {
   @Override
   public String process(HttpWrapper wrapper) throws ServerHaltingException {
     try {
-      List<BranchResponse> branches = branchManager.listBranches().stream()
-          .map(BranchResponse::from)
+      List<String> names = branchManager.listBranches().stream()
+          .filter(b -> b.getState() != BranchState.DELETED)
+          .map(BranchMetadata::getName)
           .toList();
       wrapper.setContentType(ContentType.APPLICATION_JSON);
-      return mapper.serialize(branches);
+      return mapper.serialize(names);
     } catch (BranchOperationException | JsonProcessingException e) {
       throw internalServerError(e.getMessage());
     }

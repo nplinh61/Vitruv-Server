@@ -1,5 +1,7 @@
 package tools.vitruv.framework.remote.server.rest.endpoints.branch;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
+
 /**
  * Request body DTO for switching the active branch.
  *
@@ -10,4 +12,5 @@ package tools.vitruv.framework.remote.server.rest.endpoints.branch;
  * }
  * </pre>
  */
-public record SwitchBranchRequest(String name) {}
+public record SwitchBranchRequest(
+    @JsonProperty("name") String name) {}

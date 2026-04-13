@@ -1,6 +1,7 @@
 package tools.vitruv.framework.remote.server.rest.endpoints.branch;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
+import java.io.IOException;
 import tools.vitruv.framework.remote.common.json.JsonMapper;
 import tools.vitruv.framework.remote.common.rest.constants.ContentType;
 import tools.vitruv.framework.remote.server.exception.ServerHaltingException;
@@ -8,6 +9,7 @@ import tools.vitruv.framework.remote.server.http.HttpWrapper;
 import tools.vitruv.framework.remote.server.rest.PostEndpoint;
 import tools.vitruv.framework.vsum.branch.BranchManager;
 import tools.vitruv.framework.vsum.branch.exception.BranchOperationException;
+
 
 /**
  * {@code POST /vsum/branch/switch}
@@ -65,6 +67,8 @@ public class SwitchBranchEndpoint implements PostEndpoint {
       return mapper.serialize(response);
     } catch (BranchOperationException | JsonProcessingException e) {
       throw internalServerError(e.getMessage());
+    } catch (IOException e) {
+      throw new RuntimeException(e);
     }
   }
 }
