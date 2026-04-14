@@ -13,15 +13,15 @@ import tools.vitruv.framework.remote.server.rest.PathEndointCollector;
 import tools.vitruv.framework.remote.server.rest.PostEndpoint;
 import tools.vitruv.framework.remote.server.rest.PutEndpoint;
 import tools.vitruv.framework.remote.server.rest.endpoints.branch.BranchStateEndpoint;
-import tools.vitruv.framework.remote.server.rest.endpoints.changelog.ChangelogEndpoint;
-import tools.vitruv.framework.remote.server.rest.endpoints.commit.CommitEndpoint;
-import tools.vitruv.framework.remote.server.rest.endpoints.commit.ListCommitsEndpoint;
-import tools.vitruv.framework.remote.server.rest.endpoints.merge.MergeEndpoint;
 import tools.vitruv.framework.remote.server.rest.endpoints.branch.BranchTopologyEndpoint;
 import tools.vitruv.framework.remote.server.rest.endpoints.branch.CreateBranchEndpoint;
 import tools.vitruv.framework.remote.server.rest.endpoints.branch.DeleteBranchEndpoint;
 import tools.vitruv.framework.remote.server.rest.endpoints.branch.ListBranchesEndpoint;
 import tools.vitruv.framework.remote.server.rest.endpoints.branch.SwitchBranchEndpoint;
+import tools.vitruv.framework.remote.server.rest.endpoints.changelog.ChangelogEndpoint;
+import tools.vitruv.framework.remote.server.rest.endpoints.commit.CommitEndpoint;
+import tools.vitruv.framework.remote.server.rest.endpoints.commit.ListCommitsEndpoint;
+import tools.vitruv.framework.remote.server.rest.endpoints.merge.MergeEndpoint;
 import tools.vitruv.framework.remote.server.rest.endpoints.version.CreateVersionBranchEndpoint;
 import tools.vitruv.framework.remote.server.rest.endpoints.version.CreateVersionEndpoint;
 import tools.vitruv.framework.remote.server.rest.endpoints.version.DeleteVersionEndpoint;
@@ -111,178 +111,166 @@ public class EndpointsProvider {
   }
 
   /**
-   * Creates and returns all REST endpoints, including branching endpoints backed by the
-   * given {@link BranchManager}.
+   * Returns a builder for constructing the endpoint list with optional manager groups.
+   * The base V-SUM endpoints are always included; add further groups via the builder.
    *
-   * @param virtualModel the virtual model to use for V-SUM endpoints.
-   * @param mapper the JSON mapper to use.
-   * @param branchManager the branch manager for branch lifecycle endpoints.
-   * @return a list of all REST endpoints.
+   * <p>Example:
+   * <pre>
+   * EndpointsProvider.builder(model, mapper)
+   *     .branchManager(branchMgr)
+   *     .commitManager(commitMgr)
+   *     .versioningService(versioningSvc)
+   *     .build();
+   * </pre>
+   *
+   * @param virtualModel the virtual model for the base V-SUM endpoints.
+   * @param mapper the JSON mapper used by all endpoints.
+   * @return a new {@link Builder}.
    */
-  public static List<PathEndointCollector> getAllEndpoints(
-      VirtualModel virtualModel, JsonMapper mapper, BranchManager branchManager) {
-    List<PathEndointCollector> result = getAllEndpoints(virtualModel, mapper);
-    var defaultEndpoints = getDefaultEndpoints();
+  public static Builder builder(VirtualModel virtualModel, JsonMapper mapper) {
+    return new Builder(virtualModel, mapper);
+  }
 
-    result.add(
-        new PathEndointCollector(
+  /**
+   * Builder for incrementally adding endpoint groups to the server.
+   *
+   * <p>Only endpoints whose backing manager is set are registered.
+   * Omitting a manager simply leaves those routes unregistered.
+   */
+  public static final class Builder {
+
+    private final VirtualModel virtualModel;
+    private final JsonMapper mapper;
+    private BranchManager branchManager;
+    private CommitManager commitManager;
+    private MergeManager mergeManager;
+    private VersioningService versioningService;
+
+    private Builder(VirtualModel virtualModel, JsonMapper mapper) {
+      this.virtualModel = virtualModel;
+      this.mapper = mapper;
+    }
+
+    /**
+     * Registers branch lifecycle endpoints (list, create, delete, switch, state, topology).
+     *
+     * @param branchManager the branch manager backing these endpoints.
+     * @return this builder.
+     */
+    public Builder branchManager(BranchManager branchManager) {
+      this.branchManager = branchManager;
+      return this;
+    }
+
+    /**
+     * Registers commit and changelog endpoints.
+     *
+     * @param commitManager the commit manager backing these endpoints.
+     * @return this builder.
+     */
+    public Builder commitManager(CommitManager commitManager) {
+      this.commitManager = commitManager;
+      return this;
+    }
+
+    /**
+     * Registers the merge endpoint.
+     *
+     * @param mergeManager the merge manager backing this endpoint.
+     * @return this builder.
+     */
+    public Builder mergeManager(MergeManager mergeManager) {
+      this.mergeManager = mergeManager;
+      return this;
+    }
+
+    /**
+     * Registers versioning endpoints (list, get, create, delete, rollback, branch-from-version).
+     *
+     * @param versioningService the versioning service backing these endpoints.
+     * @return this builder.
+     */
+    public Builder versioningService(VersioningService versioningService) {
+      this.versioningService = versioningService;
+      return this;
+    }
+
+    /**
+     * Builds and returns the complete endpoint list.
+     *
+     * @return a list of all registered {@link PathEndointCollector} entries.
+     */
+    public List<PathEndointCollector> build() {
+      List<PathEndointCollector> result = getAllEndpoints(virtualModel, mapper);
+      var def = getDefaultEndpoints();
+
+      if (branchManager != null) {
+        result.add(new PathEndointCollector(
             EndpointPath.BRANCH,
             new ListBranchesEndpoint(branchManager, mapper),
             new CreateBranchEndpoint(branchManager, mapper),
-            defaultEndpoints.putEndpoint(),
-            defaultEndpoints.patchEndpoint(),
+            def.putEndpoint(), def.patchEndpoint(),
             new DeleteBranchEndpoint(branchManager)));
-    result.add(
-        new PathEndointCollector(
+        result.add(new PathEndointCollector(
             EndpointPath.BRANCH_SWITCH,
-            defaultEndpoints.getEndpoint(),
-            new SwitchBranchEndpoint(branchManager, mapper),
-            defaultEndpoints.putEndpoint(),
-            defaultEndpoints.patchEndpoint(),
-            defaultEndpoints.deleteEndpoint()));
-    result.add(
-        new PathEndointCollector(
+            def.getEndpoint(), new SwitchBranchEndpoint(branchManager, mapper),
+            def.putEndpoint(), def.patchEndpoint(), def.deleteEndpoint()));
+        result.add(new PathEndointCollector(
             EndpointPath.BRANCH_TOPOLOGY,
             new BranchTopologyEndpoint(branchManager, mapper),
-            defaultEndpoints.postEndpoint(),
-            defaultEndpoints.putEndpoint(),
-            defaultEndpoints.patchEndpoint(),
-            defaultEndpoints.deleteEndpoint()));
-    result.add(
-        new PathEndointCollector(
+            def.postEndpoint(), def.putEndpoint(), def.patchEndpoint(), def.deleteEndpoint()));
+        result.add(new PathEndointCollector(
             EndpointPath.BRANCH_STATE,
             new BranchStateEndpoint(branchManager, mapper),
-            defaultEndpoints.postEndpoint(),
-            defaultEndpoints.putEndpoint(),
-            defaultEndpoints.patchEndpoint(),
-            defaultEndpoints.deleteEndpoint()));
+            def.postEndpoint(), def.putEndpoint(), def.patchEndpoint(), def.deleteEndpoint()));
+      }
 
-    return result;
-  }
-
-  /**
-   * Creates and returns all REST endpoints, including branching and commit endpoints.
-   *
-   * @param virtualModel the virtual model to use for V-SUM endpoints.
-   * @param mapper the JSON mapper to use.
-   * @param branchManager the branch manager for branch lifecycle endpoints.
-   * @param commitManager the commit manager for commit endpoints.
-   * @return a list of all REST endpoints.
-   */
-  public static List<PathEndointCollector> getAllEndpoints(
-      VirtualModel virtualModel, JsonMapper mapper,
-      BranchManager branchManager, CommitManager commitManager) {
-    return getAllEndpoints(virtualModel, mapper, branchManager, commitManager, null);
-  }
-
-  /**
-   * Creates and returns all REST endpoints, including branching, commit, and merge endpoints.
-   *
-   * @param virtualModel the virtual model to use for V-SUM endpoints.
-   * @param mapper the JSON mapper to use.
-   * @param branchManager the branch manager for branch lifecycle endpoints.
-   * @param commitManager the commit manager for commit endpoints.
-   * @param mergeManager the merge manager for merge endpoints, or {@code null} to omit.
-   * @return a list of all REST endpoints.
-   */
-  public static List<PathEndointCollector> getAllEndpoints(
-      VirtualModel virtualModel, JsonMapper mapper,
-      BranchManager branchManager, CommitManager commitManager, MergeManager mergeManager) {
-    List<PathEndointCollector> result = getAllEndpoints(virtualModel, mapper, branchManager);
-    var defaultEndpoints = getDefaultEndpoints();
-
-    result.add(
-        new PathEndointCollector(
+      if (commitManager != null) {
+        result.add(new PathEndointCollector(
             EndpointPath.COMMIT,
             new ListCommitsEndpoint(commitManager, mapper),
             new CommitEndpoint(commitManager, mapper, virtualModel.getFolder()),
-            defaultEndpoints.putEndpoint(),
-            defaultEndpoints.patchEndpoint(),
-            defaultEndpoints.deleteEndpoint()));
-    result.add(
-        new PathEndointCollector(
+            def.putEndpoint(), def.patchEndpoint(), def.deleteEndpoint()));
+        result.add(new PathEndointCollector(
             EndpointPath.CHANGELOG,
             new ChangelogEndpoint(commitManager, mapper),
-            defaultEndpoints.postEndpoint(),
-            defaultEndpoints.putEndpoint(),
-            defaultEndpoints.patchEndpoint(),
-            defaultEndpoints.deleteEndpoint()));
+            def.postEndpoint(), def.putEndpoint(), def.patchEndpoint(), def.deleteEndpoint()));
+      }
 
-    if (mergeManager != null) {
-      result.add(
-          new PathEndointCollector(
-              EndpointPath.MERGE,
-              defaultEndpoints.getEndpoint(),
-              new MergeEndpoint(mergeManager, mapper),
-              defaultEndpoints.putEndpoint(),
-              defaultEndpoints.patchEndpoint(),
-              defaultEndpoints.deleteEndpoint()));
-    }
+      if (mergeManager != null) {
+        result.add(new PathEndointCollector(
+            EndpointPath.MERGE,
+            def.getEndpoint(), new MergeEndpoint(mergeManager, mapper),
+            def.putEndpoint(), def.patchEndpoint(), def.deleteEndpoint()));
+      }
 
-    return result;
-  }
-
-  /**
-   * Creates and returns all REST endpoints, including versioning endpoints.
-   *
-   * @param virtualModel the virtual model to use for V-SUM endpoints.
-   * @param mapper the JSON mapper to use.
-   * @param branchManager the branch manager for branch lifecycle endpoints.
-   * @param commitManager the commit manager for commit endpoints.
-   * @param mergeManager the merge manager for merge endpoints, or {@code null} to omit.
-   * @param versioningService the versioning service for version endpoints.
-   * @return a list of all REST endpoints.
-   */
-  public static List<PathEndointCollector> getAllEndpoints(
-      VirtualModel virtualModel, JsonMapper mapper,
-      BranchManager branchManager, CommitManager commitManager,
-      MergeManager mergeManager, VersioningService versioningService) {
-    List<PathEndointCollector> result = getAllEndpoints(
-        virtualModel, mapper, branchManager, commitManager, mergeManager);
-    var defaultEndpoints = getDefaultEndpoints();
-
-    result.add(
-        new PathEndointCollector(
+      if (versioningService != null) {
+        result.add(new PathEndointCollector(
             EndpointPath.VERSION,
             new ListVersionsEndpoint(versioningService, mapper),
             new CreateVersionEndpoint(versioningService, mapper),
-            defaultEndpoints.putEndpoint(),
-            defaultEndpoints.patchEndpoint(),
-            defaultEndpoints.deleteEndpoint()));
-    result.add(
-        new PathEndointCollector(
+            def.putEndpoint(), def.patchEndpoint(), def.deleteEndpoint()));
+        result.add(new PathEndointCollector(
             EndpointPath.VERSION_DETAIL,
             new GetVersionEndpoint(versioningService, mapper),
-            defaultEndpoints.postEndpoint(),
-            defaultEndpoints.putEndpoint(),
-            defaultEndpoints.patchEndpoint(),
+            def.postEndpoint(), def.putEndpoint(), def.patchEndpoint(),
             new DeleteVersionEndpoint(versioningService)));
-    result.add(
-        new PathEndointCollector(
+        result.add(new PathEndointCollector(
             EndpointPath.VERSION_ROLLBACK_PREVIEW,
-            defaultEndpoints.getEndpoint(),
-            new RollbackPreviewEndpoint(versioningService, mapper),
-            defaultEndpoints.putEndpoint(),
-            defaultEndpoints.patchEndpoint(),
-            defaultEndpoints.deleteEndpoint()));
-    result.add(
-        new PathEndointCollector(
+            def.getEndpoint(), new RollbackPreviewEndpoint(versioningService, mapper),
+            def.putEndpoint(), def.patchEndpoint(), def.deleteEndpoint()));
+        result.add(new PathEndointCollector(
             EndpointPath.VERSION_ROLLBACK_CONFIRM,
-            defaultEndpoints.getEndpoint(),
-            new RollbackConfirmEndpoint(versioningService, mapper),
-            defaultEndpoints.putEndpoint(),
-            defaultEndpoints.patchEndpoint(),
-            defaultEndpoints.deleteEndpoint()));
-    result.add(
-        new PathEndointCollector(
+            def.getEndpoint(), new RollbackConfirmEndpoint(versioningService, mapper),
+            def.putEndpoint(), def.patchEndpoint(), def.deleteEndpoint()));
+        result.add(new PathEndointCollector(
             EndpointPath.VERSION_BRANCH,
-            defaultEndpoints.getEndpoint(),
-            new CreateVersionBranchEndpoint(versioningService, mapper),
-            defaultEndpoints.putEndpoint(),
-            defaultEndpoints.patchEndpoint(),
-            defaultEndpoints.deleteEndpoint()));
+            def.getEndpoint(), new CreateVersionBranchEndpoint(versioningService, mapper),
+            def.putEndpoint(), def.patchEndpoint(), def.deleteEndpoint()));
+      }
 
-    return result;
+      return result;
+    }
   }
 
   private static PathEndointCollector getDefaultEndpoints() {

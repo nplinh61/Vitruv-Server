@@ -68,7 +68,7 @@ public class SwitchBranchEndpoint implements PostEndpoint {
     } catch (BranchOperationException | JsonProcessingException e) {
       throw internalServerError(e.getMessage());
     } catch (IOException e) {
-      throw new RuntimeException(e);
+      throw internalServerError(e.getMessage());
     }
   }
 }

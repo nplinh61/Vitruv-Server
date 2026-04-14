@@ -1,6 +1,7 @@
 package tools.vitruv.framework.remote.server.rest.endpoints.commit;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
+import java.io.IOException;
 import java.nio.file.Path;
 import tools.vitruv.framework.remote.common.json.JsonMapper;
 import tools.vitruv.framework.remote.common.rest.constants.ContentType;
@@ -78,9 +79,7 @@ public class CommitEndpoint implements PostEndpoint {
           : commitManager.commit(request.message());
       wrapper.setContentType(ContentType.APPLICATION_JSON);
       return mapper.serialize(CommitResponse.from(result));
-    } catch (BranchOperationException | JsonProcessingException e) {
-      throw internalServerError(e.getMessage());
-    } catch (java.io.IOException e) {
+    } catch (BranchOperationException | IOException e) {
       throw internalServerError(e.getMessage());
     }
   }

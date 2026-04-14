@@ -21,7 +21,7 @@ public record CommitResponse(
   private static final DateTimeFormatter FORMATTER = DateTimeFormatter.ISO_LOCAL_DATE_TIME;
 
   /** Creates a {@link CommitResponse} from a {@link CommitResult} domain object. */
-  static CommitResponse from(CommitResult result) {
+  public static CommitResponse from(CommitResult result) {
     return new CommitResponse(
         result.getCommitSha(),
         result.getBranch(),

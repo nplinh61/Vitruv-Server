@@ -14,7 +14,7 @@ import tools.vitruv.framework.vsum.branch.exception.BranchOperationException;
  * {@code GET /vsum/branch/state}
  *
  * <p>Returns the lifecycle state of a single branch. The branch name is passed via the
- {@code Branch-Name} request header.
+ * {@code Branch-Name} request header.
  *
  * <p>Example request:
  * <pre>

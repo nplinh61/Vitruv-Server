@@ -6,9 +6,8 @@ import tools.vitruv.framework.vsum.branch.data.BranchMetadata;
 /**
  * API response DTO for a single branch.
  *
- * <p>Converts {@link BranchMetadata} into a Json-serializable record by formatting
- * {@code LocalDateTime} fields as ISO strings
- * the same format used by {@link BranchMetadata#writeTo} on disk.
+ * <p>Converts {@link BranchMetadata} into a JSON-serializable record by formatting
+ * {@code LocalDateTime} fields as ISO strings.
  */
 public record BranchResponse(
     String name,

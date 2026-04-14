@@ -4,36 +4,44 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import mir.reactions.model2Model2.Model2Model2ChangePropagationSpecification;
 import tools.vitruv.change.correspondence.CorrespondencePackage;
 import tools.vitruv.change.interaction.UserInteractionFactory;
 import tools.vitruv.framework.vsum.VirtualModelBuilder;
 import tools.vitruv.framework.vsum.branch.BranchAwareVirtualModel;
 import tools.vitruv.framework.vsum.branch.BranchManager;
+import tools.vitruv.framework.vsum.branch.CommitManager;
+import tools.vitruv.framework.vsum.branch.MergeManager;
 import tools.vitruv.framework.vsum.internal.InternalVirtualModel;
+import tools.vitruv.framework.vsum.versioning.VersioningService;
+import tools.vitruv.methodologisttemplate.model.model.ModelPackage;
+import tools.vitruv.methodologisttemplate.model.model2.Model2Package;
 
 /**
  * Launches a local Vitruv server for development and testing.
  *
  * <p>Starts the server on port 8080 backed by a {@link BranchAwareVirtualModel}
- * with no consistency specs (plain VSUM, sufficient for REST API testing).
+ * with the Methodologist-Template consistency rules, suitable for full REST API testing.
  *
  * <p>Usage:
  * <pre>
+ *   mvn install -pl remote -Dmaven.test.skip=true &amp;&amp; \
  *   mvn exec:java \
  *     -pl remote \
  *     -Dexec.classpathScope=test \
  *     -Dexec.mainClass=tools.vitruv.framework.remote.server.ServerMain \
- *     -Dexec.args="<absolute-path-to-git-repo>"
+ *     -Dexec.args="&lt;absolute-path-to-git-repo&gt;"
  * </pre>
  *
  * <p>The path must point to an existing Git repository (contains a {@code .git} directory).
+ * For a fresh test repository, create one with {@code git init &lt;path&gt;} first.
  */
 public class ServerMain {
 
   public static void main(String[] args) throws IOException, InterruptedException {
     if (args.length < 1) {
       System.err.println("Usage: ServerMain <repo-root-path>");
-      System.err.println("Example: ServerMain C:/Users/user/my-vitruvius-repo");
+      System.err.println("Example: ServerMain C:/Users/user/vitruv-api-test");
       System.exit(1);
     }
 
@@ -44,9 +52,11 @@ public class ServerMain {
       System.exit(1);
     }
 
-    // Required for standalone (non-OSGi) execution so EMF can resolve
-    // correspondence model URIs when loading the V-SUM from disk.
+    // Register EMF packages required for standalone (non-OSGi) execution.
+    // Without these, EMF cannot resolve model URIs when loading the V-SUM from disk.
     CorrespondencePackage.eINSTANCE.eClass();
+    ModelPackage.eINSTANCE.eClass();
+    Model2Package.eINSTANCE.eClass();
 
     System.out.println("Initializing V-SUM at: " + repoRoot);
 
@@ -54,6 +64,7 @@ public class ServerMain {
         .withStorageFolder(repoRoot)
         .withUserInteractorForResultProvider(
             UserInteractionFactory.instance.createPredefinedInteractionResultProvider(null))
+        .withChangePropagationSpecifications(new Model2Model2ChangePropagationSpecification())
         .buildAndInitialize();
 
     BranchAwareVirtualModel branchModel = new BranchAwareVirtualModel(repoRoot, innerModel);
@@ -61,7 +72,18 @@ public class ServerMain {
 
     BranchManager branchManager = new BranchManager(repoRoot);
 
-    VitruvServer server = new VitruvServer(() -> branchModel, branchManager);
+    CommitManager commitManager = new CommitManager(repoRoot);
+    commitManager.attachSemanticChangeTracking(
+        branchModel.getChangeBuffer(),
+        branchModel.getUuidResolver(),
+        branchModel::getViewSourceModels);
+
+    MergeManager mergeManager = new MergeManager(repoRoot);
+
+    VersioningService versioningService = new VersioningService(repoRoot, innerModel);
+
+    VitruvServer server = new VitruvServer(() -> branchModel, branchManager, commitManager,
+        mergeManager, versioningService);
 
     Runtime.getRuntime().addShutdownHook(new Thread(() -> {
       System.out.println("\nShutting down...");
