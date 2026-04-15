@@ -117,4 +117,14 @@ public class VitruvServer {
   public void stop() {
     server.stop();
   }
+
+  /**
+   * Returns the port the server is bound to.
+   * Useful when the server was started on port {@code 0} for dynamic port allocation.
+   *
+   * @return the local port number.
+   */
+  public int getPort() {
+    return server.getPort();
+  }
 }

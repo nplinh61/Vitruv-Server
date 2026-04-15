@@ -11,7 +11,7 @@ import tools.vitruv.framework.vsum.branch.exception.BranchOperationException;
  * {@code DELETE /vsum/branch}
  *
  * <p>Deletes an existing branch by name. The branch must not be the currently checked-out branch.
- * Deleted branches are not removed from metadata — their state is set to {@code DELETED} so that
+ * Deleted branches are not removed from metadata - their state is set to {@code DELETED} so that
  * history and topology remain intact.
  *
  * <p>The branch name is passed via the {@code Branch-Name} request header.

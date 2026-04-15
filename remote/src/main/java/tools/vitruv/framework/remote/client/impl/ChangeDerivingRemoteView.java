@@ -133,7 +133,7 @@ public class ChangeDerivingRemoteView implements CommittableView {
         .forEach(
             it -> {
               var changes = findChanges(originalResourceMapping.get(it), it);
-              if (changes.getEChanges().isEmpty()) {
+              if (!changes.getEChanges().isEmpty()) {
                 allChanges.add(changes);
               }
             });

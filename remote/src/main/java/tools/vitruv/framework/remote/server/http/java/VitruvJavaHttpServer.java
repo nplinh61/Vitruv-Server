@@ -27,4 +27,14 @@ public class VitruvJavaHttpServer {
   public void stop() {
     server.stop(0);
   }
+
+  /**
+   * Returns the port the server is bound to.
+   * When the server was created with port {@code 0}, the actual assigned port is returned.
+   *
+   * @return the local port number.
+   */
+  public int getPort() {
+    return server.getAddress().getPort();
+  }
 }

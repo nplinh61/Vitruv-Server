@@ -3,6 +3,7 @@ package tools.vitruv.framework.remote.server.rest.endpoints.branch;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 import tools.vitruv.framework.remote.common.json.JsonMapper;
 import tools.vitruv.framework.remote.common.rest.constants.ContentType;
 import tools.vitruv.framework.remote.server.exception.ServerHaltingException;
@@ -44,7 +45,13 @@ public class BranchTopologyEndpoint implements GetEndpoint {
   @Override
   public String process(HttpWrapper wrapper) throws ServerHaltingException {
     try {
-      Map<String, List<String>> topology = branchManager.getBranchTopology();
+      // "root" is a sentinel value used internally by BranchManager to anchor
+      // the initial branch in the topology DAG. Strip it before sending the
+      // response so clients only see real branch names as keys.
+      Map<String, List<String>> topology = branchManager.getBranchTopology()
+          .entrySet().stream()
+          .filter(e -> !"root".equals(e.getKey()))
+          .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
       wrapper.setContentType(ContentType.APPLICATION_JSON);
       return mapper.serialize(topology);
     } catch (BranchOperationException | JsonProcessingException e) {

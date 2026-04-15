@@ -13,7 +13,10 @@ import tools.vitruv.framework.vsum.versioning.VersioningService;
 /**
  * {@code GET /vsum/version}
  *
- * <p>Returns all versions defined on the repository, newest first.
+ * <p>Returns a lightweight summary of all versions, newest first.
+ * Each entry contains only {@code versionId} and {@code description}.
+ * Use {@code GET /vsum/version/detail} with the {@code Version-Id} header
+ * to retrieve the full metadata for a specific version.
  *
  * <p>Example request:
  * <pre>
@@ -23,15 +26,7 @@ import tools.vitruv.framework.vsum.versioning.VersioningService;
  * <p>Example response:
  * <pre>
  * [
- *   {
- *     "versionId": "v1.0",
- *     "commitSha": "a1b2c3d...",
- *     "branch": "master",
- *     "taggerName": "Linh Nguyen",
- *     "taggerEmail": "linh@example.com",
- *     "createdAt": "2026-04-07T14:00:00",
- *     "description": "Stable baseline after sprint 1"
- *   }
+ *   { "versionId": "v1.0", "description": "Stable baseline after sprint 1" }
  * ]
  * </pre>
  */
@@ -54,8 +49,8 @@ public class ListVersionsEndpoint implements GetEndpoint {
   @Override
   public String process(HttpWrapper wrapper) throws ServerHaltingException {
     try {
-      List<VersionResponse> versions = versioningService.listVersions().stream()
-          .map(VersionResponse::from)
+      List<VersionSummary> versions = versioningService.listVersions().stream()
+          .map(VersionSummary::from)
           .toList();
       wrapper.setContentType(ContentType.APPLICATION_JSON);
       return mapper.serialize(versions);

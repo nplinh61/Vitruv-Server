@@ -51,6 +51,18 @@ public class SwitchBranchEndpoint implements PostEndpoint {
     this.mapper = mapper;
   }
 
+  /** Builds a diagnostic message from the full exception cause chain. */
+  private static String buildCauseChain(Throwable t) {
+    StringBuilder sb = new StringBuilder(t.getMessage());
+    Throwable cause = t.getCause();
+    while (cause != null) {
+      sb.append(" | caused by: ").append(cause.getClass().getSimpleName())
+          .append(": ").append(cause.getMessage());
+      cause = cause.getCause();
+    }
+    return sb.toString();
+  }
+
   @Override
   public String process(HttpWrapper wrapper) throws ServerHaltingException {
     try {
@@ -66,9 +78,9 @@ public class SwitchBranchEndpoint implements PostEndpoint {
       wrapper.setContentType(ContentType.APPLICATION_JSON);
       return mapper.serialize(response);
     } catch (BranchOperationException | JsonProcessingException e) {
-      throw internalServerError(e.getMessage());
+      throw internalServerError(buildCauseChain(e));
     } catch (IOException e) {
-      throw internalServerError(e.getMessage());
+      throw internalServerError(buildCauseChain(e));
     }
   }
 }

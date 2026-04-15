@@ -56,11 +56,13 @@ public class ChangelogEndpoint implements GetEndpoint {
     if (sha == null || sha.isBlank()) {
       throw badRequest("Missing required header: " + Header.COMMIT_SHA);
     }
+    // readChangelog() expects a 7-char short SHA; truncate if caller passes a full SHA.
+    String shortSha = sha.length() > 7 ? sha.substring(0, 7) : sha;
     try {
-      SemanticChangelogManager.ChangelogDocument doc = commitManager.readChangelog(branch, sha);
+      SemanticChangelogManager.ChangelogDocument doc = commitManager.readChangelog(branch, shortSha);
       if (doc == null) {
         throw notFound(
-            "No changelog found for branch '" + branch + "', commit '" + sha + "'");
+            "No changelog found for branch '" + branch + "', commit '" + shortSha + "'");
       }
       wrapper.setContentType(ContentType.APPLICATION_JSON);
       return mapper.serialize(doc);

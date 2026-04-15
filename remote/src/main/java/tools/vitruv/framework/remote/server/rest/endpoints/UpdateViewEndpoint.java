@@ -6,9 +6,9 @@ import java.util.List;
 import org.eclipse.emf.ecore.EObject;
 import org.eclipse.emf.ecore.resource.Resource;
 import org.eclipse.emf.ecore.resource.ResourceSet;
-import org.eclipse.emf.ecore.resource.impl.ResourceSetImpl;
 import tools.vitruv.framework.remote.common.json.JsonMapper;
 import tools.vitruv.framework.remote.common.rest.constants.ContentType;
+import tools.vitruv.framework.remote.common.util.ResourceUtil;
 import tools.vitruv.framework.remote.common.rest.constants.Header;
 import tools.vitruv.framework.remote.server.http.HttpWrapper;
 import tools.vitruv.framework.remote.server.rest.GetEndpoint;
@@ -42,7 +42,7 @@ public class UpdateViewEndpoint implements GetEndpoint {
     // Get resources.
     List<Resource> resources =
         view.getRootObjects().stream().map(EObject::eResource).distinct().toList();
-    ResourceSet set = new ResourceSetImpl();
+    ResourceSet set = ResourceUtil.createJsonResourceSet();
     ResourceCopier.copyViewResources(resources, set);
 
     wrapper.setContentType(ContentType.APPLICATION_JSON);

@@ -15,7 +15,7 @@ import tools.vitruv.framework.vsum.versioning.data.RollbackPreview;
  * {@code POST /vsum/version/rollback/confirm}
  *
  * <p>Executes a rollback to the given version. Resets the working directory via
- * {@code git reset --hard} and reloads the V-SUM. This operation is irreversible —
+ * {@code git reset --hard} and reloads the V-SUM. This operation is irreversible -
  * uncommitted changes and commits after the target version are permanently lost.
  *
  * <p>This is step 2 of a two-step rollback. Call

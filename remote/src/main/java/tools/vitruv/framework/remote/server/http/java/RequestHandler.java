@@ -50,17 +50,20 @@ class RequestHandler implements HttpHandler {
       } else {
         wrapper.sendResponse(HTTP_OK);
       }
-    } catch (IOException | ServerHaltingException exception) {
+    } catch (IOException | RuntimeException exception) {
       var statusCode = HTTP_INTERNAL_ERROR;
       if (exception instanceof ServerHaltingException haltingException) {
         statusCode = haltingException.getStatusCode();
       }
+      String message = exception.getMessage() != null
+          ? exception.getMessage()
+          : exception.getClass().getName();
       wrapper.setContentType(ContentType.TEXT_PLAIN);
       try {
-        wrapper.sendResponse(statusCode, exception.getMessage().getBytes(StandardCharsets.UTF_8));
+        wrapper.sendResponse(statusCode, message.getBytes(StandardCharsets.UTF_8));
       } catch (IOException e) {
         throw new IllegalStateException(
-            "Sending a response (" + statusCode + " " + exception.getMessage() + ") failed.", e);
+            "Sending a response (" + statusCode + " " + message + ") failed.", e);
       }
     }
   }
