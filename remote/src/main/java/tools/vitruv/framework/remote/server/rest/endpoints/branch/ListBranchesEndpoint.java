@@ -8,19 +8,19 @@ import tools.vitruv.framework.remote.server.exception.ServerHaltingException;
 import tools.vitruv.framework.remote.server.http.HttpWrapper;
 import tools.vitruv.framework.remote.server.rest.GetEndpoint;
 import tools.vitruv.framework.vsum.branch.BranchManager;
-import tools.vitruv.framework.vsum.branch.data.BranchMetadata;
 import tools.vitruv.framework.vsum.branch.data.BranchState;
 import tools.vitruv.framework.vsum.branch.exception.BranchOperationException;
 
 /**
  * {@code GET /vsum/branch}
  *
- * <p>Returns a JSON array of branch names, excluding deleted branches.
- * Analogous to {@code git branch}.
+ * <p>Returns a JSON array of branch summaries (name, state, maturity, parent),
+ * excluding deleted branches. Analogous to {@code git branch -v}.
  *
  * <p>Example response:
  * <pre>
- * ["master", "feature/my-feature"]
+ * [{"name":"master","state":"ACTIVE","maturity":"DRAFT",...},
+ *  {"name":"feature/my-feature","state":"ACTIVE","maturity":"DRAFT",...}]
  * </pre>
  */
 public class ListBranchesEndpoint implements GetEndpoint {
@@ -42,12 +42,12 @@ public class ListBranchesEndpoint implements GetEndpoint {
   @Override
   public String process(HttpWrapper wrapper) throws ServerHaltingException {
     try {
-      List<String> names = branchManager.listBranches().stream()
+      List<BranchResponse> branches = branchManager.listBranches().stream()
           .filter(b -> b.getState() != BranchState.DELETED)
-          .map(BranchMetadata::getName)
+          .map(BranchResponse::from)
           .toList();
       wrapper.setContentType(ContentType.APPLICATION_JSON);
-      return mapper.serialize(names);
+      return mapper.serialize(branches);
     } catch (BranchOperationException | JsonProcessingException e) {
       throw internalServerError(e.getMessage());
     }

@@ -12,6 +12,7 @@ import tools.vitruv.framework.vsum.branch.data.BranchMetadata;
 public record BranchResponse(
     String name,
     String state,
+    String maturity,
     String parentBranch,
     String createdAt,
     String lastModified) {
@@ -23,6 +24,7 @@ public record BranchResponse(
     return new BranchResponse(
         metadata.getName(),
         metadata.getState().name(),
+        metadata.getMaturity().name(),
         metadata.getParent(),
         metadata.getCreatedAt().format(FORMATTER),
         metadata.getLastModified().format(FORMATTER));

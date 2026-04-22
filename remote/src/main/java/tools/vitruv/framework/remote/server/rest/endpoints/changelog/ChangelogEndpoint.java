@@ -1,6 +1,5 @@
 package tools.vitruv.framework.remote.server.rest.endpoints.changelog;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
 import tools.vitruv.framework.remote.common.json.JsonMapper;
 import tools.vitruv.framework.remote.common.rest.constants.ContentType;
 import tools.vitruv.framework.remote.common.rest.constants.Header;
@@ -9,7 +8,6 @@ import tools.vitruv.framework.remote.server.http.HttpWrapper;
 import tools.vitruv.framework.remote.server.rest.GetEndpoint;
 import tools.vitruv.framework.vsum.branch.CommitManager;
 import tools.vitruv.framework.vsum.branch.exception.BranchOperationException;
-import tools.vitruv.framework.vsum.branch.storage.SemanticChangelogManager;
 
 /**
  * {@code GET /vsum/changelog}
@@ -56,17 +54,17 @@ public class ChangelogEndpoint implements GetEndpoint {
     if (sha == null || sha.isBlank()) {
       throw badRequest("Missing required header: " + Header.COMMIT_SHA);
     }
-    // readChangelog() expects a 7-char short SHA; truncate if caller passes a full SHA.
+    // readChangelogRaw() expects a 7-char short SHA; truncate if caller passes a full SHA.
     String shortSha = sha.length() > 7 ? sha.substring(0, 7) : sha;
     try {
-      SemanticChangelogManager.ChangelogDocument doc = commitManager.readChangelog(branch, shortSha);
-      if (doc == null) {
+      String raw = commitManager.readChangelogRaw(branch, shortSha);
+      if (raw == null) {
         throw notFound(
             "No changelog found for branch '" + branch + "', commit '" + shortSha + "'");
       }
       wrapper.setContentType(ContentType.APPLICATION_JSON);
-      return mapper.serialize(doc);
-    } catch (BranchOperationException | JsonProcessingException e) {
+      return raw;
+    } catch (BranchOperationException e) {
       throw internalServerError(e.getMessage());
     }
   }
