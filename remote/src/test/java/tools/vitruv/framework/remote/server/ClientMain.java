@@ -175,28 +175,25 @@ public class ClientMain {
      */
     private static void createModels() {
         java.lang.System.out.println("\nCreating System model via Vitruv view API...");
-        View rawView = openView(null);
-        if (!rawView.getRootObjects(System.class).isEmpty()) {
-            java.lang.System.out.println("System already exists. Delete it first (option 7).");
-            return;
-        }
 
         // Ask the server where to persist the model.
         // The URI must be a path that the SERVER can write to (its repo root).
-        java.lang.System.out.print("Enter server-side model path (e.g. /tmp/vitruv-manual-test/example.model): ");
+        // Use .model extension (e.g. C:/vitruv-manual-test/system.model).
+        java.lang.System.out.print("Enter server-side model path (e.g. C:/vitruv-manual-test/system.model): ");
         String pathStr = scanner.nextLine().trim();
         if (pathStr.isEmpty()) {
             java.lang.System.out.println("Cancelled.");
             return;
         }
 
+        View rawView = openView(null);
         CommittableView view = rawView.withChangeDerivingTrait(
                 new DefaultStateBasedChangeResolutionStrategy());
         System system = ModelFactory.eINSTANCE.createSystem();
         view.registerRoot(system, URI.createFileURI(pathStr));
         view.commitChanges();
 
-        java.lang.System.out.println("System model created successfully.");
+        java.lang.System.out.println("System created at " + pathStr);
         java.lang.System.out.println("Reaction should have created example.model2 automatically.");
     }
 
@@ -218,7 +215,8 @@ public class ClientMain {
         }
 
         for (System system : systems) {
-            java.lang.System.out.println("\nSystem (example.model):");
+            String uri = system.eResource() != null ? system.eResource().getURI().lastSegment() : "?";
+            java.lang.System.out.println("\nSystem [" + uri + "]:");
             if (system.getComponents().isEmpty()) {
                 java.lang.System.out.println("  Components: (none)");
             } else {
@@ -228,7 +226,8 @@ public class ClientMain {
         }
 
         for (Root root : roots) {
-            java.lang.System.out.println("\nRoot (example.model2): created by reaction:");
+            String uri = root.eResource() != null ? root.eResource().getURI().lastSegment() : "?";
+            java.lang.System.out.println("\nRoot [" + uri + "] (created by reaction):");
             if (root.getEntities().isEmpty()) {
                 java.lang.System.out.println("  Entities: (none)");
             } else {

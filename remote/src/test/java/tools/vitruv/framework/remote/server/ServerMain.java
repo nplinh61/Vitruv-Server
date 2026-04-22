@@ -5,13 +5,17 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import mir.reactions.model2Model2.Model2Model2ChangePropagationSpecification;
+import tools.vitruv.change.atomic.AtomicPackage;
 import tools.vitruv.change.correspondence.CorrespondencePackage;
+import tools.vitruv.change.interaction.InteractionPackage;
 import tools.vitruv.change.interaction.UserInteractionFactory;
+import tools.vitruv.framework.views.ViewTypeFactory;
 import tools.vitruv.framework.vsum.VirtualModelBuilder;
 import tools.vitruv.framework.vsum.branch.BranchAwareVirtualModel;
 import tools.vitruv.framework.vsum.branch.BranchManager;
 import tools.vitruv.framework.vsum.branch.CommitManager;
 import tools.vitruv.framework.vsum.branch.MergeManager;
+import tools.vitruv.framework.vsum.branch.handler.PostMergeHandler;
 import tools.vitruv.framework.vsum.internal.InternalVirtualModel;
 import tools.vitruv.framework.vsum.versioning.VersioningService;
 import tools.vitruv.methodologisttemplate.model.model.ModelPackage;
@@ -57,6 +61,14 @@ public class ServerMain {
     CorrespondencePackage.eINSTANCE.eClass();
     ModelPackage.eINSTANCE.eClass();
     Model2Package.eINSTANCE.eClass();
+    // Required so that the server's JsonMapper can resolve eClass URIs in incoming PATCH bodies
+    // (e.g. "http://vitruv.tools/metamodels/change/atomic/2.0#//eobject/CreateEObject")
+    // without triggering an HTTP demand-load of those URIs.
+    AtomicPackage.eINSTANCE.eClass();
+    InteractionPackage.eINSTANCE.eClass();
+    // Required to reload saved V-SUM state: the reactions framework writes correspondence objects
+    // referencing this package into correspondences.correspondence.
+    tools.vitruv.dsls.reactions.runtime.correspondence.CorrespondencePackage.eINSTANCE.eClass();
 
     System.out.println("Initializing V-SUM at: " + repoRoot);
 
@@ -65,6 +77,7 @@ public class ServerMain {
         .withUserInteractorForResultProvider(
             UserInteractionFactory.instance.createPredefinedInteractionResultProvider(null))
         .withChangePropagationSpecifications(new Model2Model2ChangePropagationSpecification())
+        .withViewType(ViewTypeFactory.createIdentityMappingViewType("default"))
         .buildAndInitialize();
 
     BranchAwareVirtualModel branchModel = new BranchAwareVirtualModel(repoRoot, innerModel);
@@ -75,10 +88,13 @@ public class ServerMain {
     CommitManager commitManager = new CommitManager(repoRoot);
     commitManager.attachSemanticChangeTracking(
         branchModel.getChangeBuffer(),
-        branchModel.getUuidResolver(),
+        branchModel::getUuidResolver,
         branchModel::getViewSourceModels);
 
     MergeManager mergeManager = new MergeManager(repoRoot);
+    mergeManager.suppressTriggerFile();
+    mergeManager.setPostMergeHandler(new PostMergeHandler(branchModel, repoRoot));
+    mergeManager.setPostMergeReload(branchModel::reload);
 
     VersioningService versioningService = new VersioningService(repoRoot, innerModel);
 
