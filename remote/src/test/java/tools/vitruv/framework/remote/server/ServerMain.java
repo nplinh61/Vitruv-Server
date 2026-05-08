@@ -4,6 +4,7 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.List;
 import mir.reactions.model2Model2.Model2Model2ChangePropagationSpecification;
 import tools.vitruv.change.atomic.AtomicPackage;
 import tools.vitruv.change.correspondence.CorrespondencePackage;
@@ -16,6 +17,9 @@ import tools.vitruv.framework.vsum.branch.BranchManager;
 import tools.vitruv.framework.vsum.branch.CommitManager;
 import tools.vitruv.framework.vsum.branch.MergeManager;
 import tools.vitruv.framework.vsum.branch.handler.PostMergeHandler;
+import tools.vitruv.framework.vsum.branch.handler.PreCommitHandler;
+import tools.vitruv.framework.vsum.branch.merge.SemanticMergeEngine;
+import tools.vitruv.framework.vsum.branch.util.GitHookInstaller;
 import tools.vitruv.framework.vsum.internal.InternalVirtualModel;
 import tools.vitruv.framework.vsum.versioning.VersioningService;
 import tools.vitruv.methodologisttemplate.model.model.ModelPackage;
@@ -83,6 +87,14 @@ public class ServerMain {
     BranchAwareVirtualModel branchModel = new BranchAwareVirtualModel(repoRoot, innerModel);
     System.out.println("Active branch: " + branchModel.getActiveBranch());
 
+    GitHookInstaller hookInstaller = new GitHookInstaller(repoRoot);
+    if (hookInstaller.areAllHooksInstalled()) {
+      System.out.println("Git hooks already installed.");
+    } else {
+      hookInstaller.installAllHooks();
+      System.out.println("Git hooks installed.");
+    }
+
     BranchManager branchManager = new BranchManager(repoRoot);
 
     CommitManager commitManager = new CommitManager(repoRoot);
@@ -90,11 +102,20 @@ public class ServerMain {
         branchModel.getChangeBuffer(),
         branchModel::getUuidResolver,
         branchModel::getViewSourceModels);
+    commitManager.attachValidation(new PreCommitHandler(branchModel));
 
     MergeManager mergeManager = new MergeManager(repoRoot);
     mergeManager.suppressTriggerFile();
     mergeManager.setPostMergeHandler(new PostMergeHandler(branchModel, repoRoot));
     mergeManager.setPostMergeReload(branchModel::reload);
+    // Wire in the merge engine so that (a) semantically-clean merges that produce JGit text
+    // conflicts fall back to engine replay, and (b) REST clients can request auto-resolution
+    // via the "resolutionStrategy" field in POST /vsum/merge.
+    SemanticMergeEngine mergeEngine = new SemanticMergeEngine(
+        repoRoot,
+        List.of(new Model2Model2ChangePropagationSpecification()),
+        UserInteractionFactory.instance.createPredefinedInteractionResultProvider(null));
+    mergeManager.setMergeEngine(mergeEngine);
 
     VersioningService versioningService = new VersioningService(repoRoot, innerModel);
 

@@ -17,6 +17,7 @@ import tools.vitruv.framework.vsum.branch.BranchManager;
 import tools.vitruv.framework.vsum.branch.CommitManager;
 import tools.vitruv.framework.vsum.branch.MergeManager;
 import tools.vitruv.framework.vsum.branch.handler.PostMergeHandler;
+import tools.vitruv.framework.vsum.branch.handler.PreCommitHandler;
 import tools.vitruv.framework.vsum.internal.InternalVirtualModel;
 import tools.vitruv.framework.vsum.versioning.VersioningService;
 import tools.vitruv.methodologisttemplate.model.model.ModelPackage;
@@ -111,6 +112,7 @@ public abstract class AbstractServerIntegrationTest {
                 branchModel.getChangeBuffer(),
                 branchModel::getUuidResolver,
                 branchModel::getViewSourceModels);
+        commitManager.attachValidation(new PreCommitHandler(branchModel));
 
         // MergeManager handles three-way Git merges between branches.
         MergeManager mergeManager = new MergeManager(repoRoot);
