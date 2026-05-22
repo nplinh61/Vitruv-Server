@@ -129,6 +129,7 @@ public class ClientMain {
             java.lang.System.out.println(" 14. Create version tag");
             java.lang.System.out.println(" 15. List versions");
             java.lang.System.out.println(" 16. Rollback to version");
+            java.lang.System.out.println(" 17. Merge branch");
             java.lang.System.out.println("  0. Exit");
             java.lang.System.out.print("Choose option: ");
 
@@ -151,6 +152,7 @@ public class ClientMain {
                     case "14" -> createVersion();
                     case "15" -> listVersions();
                     case "16" -> rollbackVersion();
+                    case "17" -> mergeBranch();
                     case "0"  -> {
                         java.lang.System.out.println("Exiting.");
                         return;
@@ -482,9 +484,11 @@ public class ClientMain {
     }
 
     /**
-     * Rolls back to a previously created version via {@code POST /vsum/version/rollback}.
+     * Rolls back to a previously created version via the two-step rollback API:
+     * step 1 {@code POST /vsum/version/rollback/preview} (shows commits to be abandoned),
+     * step 2 {@code POST /vsum/version/rollback/confirm} (executes the rollback).
      *
-     * <p>The server restores the model files from the tagged commit and reloads the V-SUM.
+     * <p>The version ID is passed via the {@code Version-Id} request header.
      */
     private static void rollbackVersion() {
         java.lang.System.out.print("\nVersion ID to rollback to: ");
@@ -493,14 +497,52 @@ public class ClientMain {
             java.lang.System.out.println("Cancelled.");
             return;
         }
-        java.lang.System.out.print("Confirm rollback to '" + id + "'? (yes/no): ");
+
+        // Step 1: preview
+        String preview = httpPost("/vsum/version/rollback/preview", null, "Version-Id", id);
+        java.lang.System.out.println("Rollback preview:\n" + prettyPrint(preview));
+
+        java.lang.System.out.print("Proceed with rollback? (yes/no): ");
         if (!scanner.nextLine().trim().equalsIgnoreCase("yes")) {
             java.lang.System.out.println("Cancelled.");
             return;
         }
-        String response = httpPost("/vsum/version/rollback", null, "Version-Id", id);
-        java.lang.System.out.println("Rollback result:\n" + prettyPrint(response));
+
+        // Step 2: confirm
+        String result = httpPost("/vsum/version/rollback/confirm", null, "Version-Id", id);
+        java.lang.System.out.println("Rollback result:\n" + prettyPrint(result));
         java.lang.System.out.println("Tip: open a view now (option 2) to verify the restored state.");
+    }
+
+    /**
+     * Merges a branch into the current branch via {@code POST /vsum/merge}.
+     *
+     * <p>Optionally specify a resolution strategy ({@code THEIRS} or {@code OURS}) to
+     * auto-resolve semantic conflicts. Leave blank to block on conflicts.
+     */
+    private static void mergeBranch() {
+        java.lang.System.out.print("\nSource branch to merge (into current branch): ");
+        String source = scanner.nextLine().trim();
+        if (source.isEmpty()) {
+            java.lang.System.out.println("Cancelled.");
+            return;
+        }
+        java.lang.System.out.print("Delete source branch after merge? (yes/no) [no]: ");
+        boolean deleteAfter = scanner.nextLine().trim().equalsIgnoreCase("yes");
+
+        java.lang.System.out.print("Resolution strategy (THEIRS / OURS / leave blank for none): ");
+        String strategy = scanner.nextLine().trim();
+
+        StringBuilder body = new StringBuilder();
+        body.append("{\"sourceBranch\": \"").append(escapeJson(source)).append("\"");
+        body.append(", \"deleteAfterMerge\": ").append(deleteAfter);
+        if (!strategy.isEmpty()) {
+            body.append(", \"resolutionStrategy\": \"").append(escapeJson(strategy)).append("\"");
+        }
+        body.append("}");
+
+        String response = httpPost("/vsum/merge", body.toString());
+        java.lang.System.out.println("Merge result:\n" + prettyPrint(response));
     }
 
     

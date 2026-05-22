@@ -78,8 +78,6 @@ class ModelInteractionIT extends AbstractServerIntegrationTest {
     return new VitruvRemoteConnection("http", "localhost", server.getPort(), clientTemp());
   }
 
-  
-  // Helper: open a view for all elements of the given root types
   /**
    * Opens a view via the remote client and selects all elements that are
    * instances of the given root type filter.
@@ -108,8 +106,6 @@ class ModelInteractionIT extends AbstractServerIntegrationTest {
     return selector.createView();
   }
 
-  
-  // Test 1: Reaction fires: adding a System creates a Root in Model2
   /**
    * Adds a {@link System} element via the REST API and verifies that the
    * Model2Model2 consistency reaction automatically creates a corresponding
@@ -154,8 +150,6 @@ class ModelInteractionIT extends AbstractServerIntegrationTest {
     assertNotNull(root, "Root element must not be null");
   }
 
-  
-  // Test 2: Model state persists: re-opening a view shows the committed element
   /**
    * Re-opens a view after the System was committed in test 1 and verifies that
    * the V-SUM's in-memory state correctly reflects the persistent model.
@@ -176,8 +170,6 @@ class ModelInteractionIT extends AbstractServerIntegrationTest {
         "Expected the System added in test 1 to be present in a freshly opened view");
   }
 
-  
-  // Test 3: Model2 Root persists: re-opening a Root view shows the element
   /**
    * Re-opens a view filtered to {@link Root} elements and verifies the reaction
    * result from test 1 is still present.
@@ -198,8 +190,6 @@ class ModelInteractionIT extends AbstractServerIntegrationTest {
         "Expected reaction-created Root to be present in a freshly opened view");
   }
 
-  
-  // Test 4: Branch isolation: switching branches isolates model state
   /**
    * Verifies that model state is branch-isolated:
    * <ol>
@@ -236,7 +226,7 @@ class ModelInteractionIT extends AbstractServerIntegrationTest {
         "Branch creation failed: " + createResponse.body());
 
     // Step 3: switch to the feature branch.
-    var switchResponse = post("/vsum/branch/switch", "{\"name\": \"feature/isolation-test\"}");
+    var switchResponse = post("/vsum/branch/feature%2Fisolation-test/switch", "");
     assertEquals(200, switchResponse.statusCode(),
         "Branch switch failed: " + switchResponse.body());
 
@@ -250,7 +240,7 @@ class ModelInteractionIT extends AbstractServerIntegrationTest {
         "Feature branch (forked from master) should show the committed System");
 
     // Step 5: switch back to master.
-    var switchBackResponse = post("/vsum/branch/switch", "{\"name\": \"master\"}");
+    var switchBackResponse = post("/vsum/branch/master/switch", "");
     assertEquals(200, switchBackResponse.statusCode(),
         "Switch back to master failed: " + switchBackResponse.body());
 
@@ -262,7 +252,6 @@ class ModelInteractionIT extends AbstractServerIntegrationTest {
   }
 
 
-  // Test 5: Branch divergence: changes committed on a feature branch are invisible on master
   /**
    * Verifies true branch divergence:
    * <ol>
@@ -285,8 +274,7 @@ class ModelInteractionIT extends AbstractServerIntegrationTest {
         "Branch creation failed: " + createResponse.body());
 
     // Step 2: switch to the feature branch.
-    var switchResponse = post("/vsum/branch/switch",
-        "{\"name\": \"feature/divergence-test\"}");
+    var switchResponse = post("/vsum/branch/feature%2Fdivergence-test/switch", "");
     assertEquals(200, switchResponse.statusCode(),
         "Branch switch failed: " + switchResponse.body());
 
@@ -316,7 +304,7 @@ class ModelInteractionIT extends AbstractServerIntegrationTest {
         "Feature branch should show both the original and the new System");
 
     // Step 6: switch back to master.
-    var switchBackResponse = post("/vsum/branch/switch", "{\"name\": \"master\"}");
+    var switchBackResponse = post("/vsum/branch/master/switch", "");
     assertEquals(200, switchBackResponse.statusCode(),
         "Switch back to master failed: " + switchBackResponse.body());
 

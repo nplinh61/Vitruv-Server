@@ -10,35 +10,24 @@ import tools.vitruv.framework.vsum.branch.BranchManager;
 import tools.vitruv.framework.vsum.branch.exception.BranchOperationException;
 
 /**
- * {@code GET /vsum/branch/{branchName}/state}
+ * {@code GET /vsum/branch/{branchName}}
  *
- * <p>Returns the lifecycle state of a single branch. The branch name is extracted from the
- * path: the first dynamic segment after {@code /vsum/branch/}.
+ * <p>Returns full metadata for a single branch. The branch name is path segment 0
+ * after {@code /vsum/branch/}.
  *
  * <p>Example request:
  * <pre>
- *   GET /vsum/branch/feature%2Fmy-feature/state
+ *   GET /vsum/branch/feature%2Fmy-feature
  * </pre>
  *
- * <p>Example response:
- * <pre>
- *   "ACTIVE"
- * </pre>
- *
- * <p>Possible values are {@code ACTIVE}, {@code MERGED}, and {@code DELETED}.
+ * <p>Returns {@code 404} if the branch does not exist.
  */
-public class BranchStateEndpoint implements GetEndpoint {
+public class GetSingleBranchEndpoint implements GetEndpoint {
 
   private final BranchManager branchManager;
   private final JsonMapper mapper;
 
-  /**
-   * Creates a new {@link BranchStateEndpoint}.
-   *
-   * @param branchManager the branch manager used to retrieve the branch state.
-   * @param mapper the JSON mapper used to serialize the response.
-   */
-  public BranchStateEndpoint(BranchManager branchManager, JsonMapper mapper) {
+  public GetSingleBranchEndpoint(BranchManager branchManager, JsonMapper mapper) {
     this.branchManager = branchManager;
     this.mapper = mapper;
   }
@@ -50,10 +39,16 @@ public class BranchStateEndpoint implements GetEndpoint {
       throw badRequest("Missing branch name in path");
     }
     try {
-      String state = branchManager.getBranchState(name).name();
+      BranchResponse response = branchManager.listBranches().stream()
+          .filter(b -> b.getName().equals(name))
+          .findFirst()
+          .map(BranchResponse::from)
+          .orElseThrow(() -> new BranchOperationException("Branch not found: " + name));
       wrapper.setContentType(ContentType.APPLICATION_JSON);
-      return mapper.serialize(state);
-    } catch (BranchOperationException | JsonProcessingException e) {
+      return mapper.serialize(response);
+    } catch (BranchOperationException e) {
+      throw notFound(e.getMessage());
+    } catch (JsonProcessingException e) {
       throw internalServerError(e.getMessage());
     }
   }

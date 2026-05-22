@@ -1,7 +1,6 @@
 package tools.vitruv.framework.remote.server.rest.endpoints.branch;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
-import java.io.IOException;
 import tools.vitruv.framework.remote.common.json.JsonMapper;
 import tools.vitruv.framework.remote.common.rest.constants.ContentType;
 import tools.vitruv.framework.remote.server.exception.ServerHaltingException;
@@ -12,16 +11,15 @@ import tools.vitruv.framework.vsum.branch.exception.BranchOperationException;
 
 
 /**
- * {@code POST /vsum/branch/switch}
+ * {@code POST /vsum/branch/{branchName}/switch}
  *
- * <p>Switches the active Git branch and reloads the V-SUM in place so that the in-memory
- * model state reflects the content of the newly checked-out branch.
+ * <p>Switches the active Git branch and reinitializes the V-SUM in place so that the in-memory
+ * model state reflects the content of the newly checked-out branch. The branch name is
+ * extracted from path segment 0 after {@code /vsum/branch/}; no request body is needed.
  *
- * <p>Expected request body:
+ * <p>Example request:
  * <pre>
- * {
- *   "name": "feature/my-feature"
- * }
+ *   POST /vsum/branch/feature%2Fmy-feature/switch
  * </pre>
  *
  * <p>Returns the newly active branch as a JSON object:
@@ -65,21 +63,21 @@ public class SwitchBranchEndpoint implements PostEndpoint {
 
   @Override
   public String process(HttpWrapper wrapper) throws ServerHaltingException {
+    String branchName = wrapper.getPathSegment(0);
+    if (branchName == null || branchName.isBlank()) {
+      throw badRequest("Missing branch name in path");
+    }
     try {
-      String body = wrapper.getRequestBodyAsString();
-      SwitchBranchRequest request = mapper.deserialize(body, SwitchBranchRequest.class);
-      branchManager.switchBranch(request.name());
+      branchManager.switchBranch(branchName);
       BranchResponse response = BranchResponse.from(
           branchManager.listBranches().stream()
-              .filter(b -> b.getName().equals(request.name()))
+              .filter(b -> b.getName().equals(branchName))
               .findFirst()
               .orElseThrow(() -> new BranchOperationException(
-                  "Branch not found after switch: " + request.name())));
+                  "Branch not found after switch: " + branchName)));
       wrapper.setContentType(ContentType.APPLICATION_JSON);
       return mapper.serialize(response);
     } catch (BranchOperationException | JsonProcessingException e) {
-      throw internalServerError(buildCauseChain(e));
-    } catch (IOException e) {
       throw internalServerError(buildCauseChain(e));
     }
   }

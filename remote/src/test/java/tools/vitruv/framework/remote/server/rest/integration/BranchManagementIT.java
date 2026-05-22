@@ -11,7 +11,6 @@ import org.junit.jupiter.api.MethodOrderer.OrderAnnotation;
 import org.junit.jupiter.api.Order;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestMethodOrder;
-import tools.vitruv.framework.remote.common.rest.constants.Header;
 
 /**
  * Integration tests for branch management endpoints.
@@ -21,8 +20,6 @@ import tools.vitruv.framework.remote.common.rest.constants.Header;
  */
 @TestMethodOrder(OrderAnnotation.class)
 class BranchManagementIT extends AbstractServerIntegrationTest {
-
-  // list branches
 
   @Test
   @Order(1)
@@ -34,8 +31,6 @@ class BranchManagementIT extends AbstractServerIntegrationTest {
     String body = response.body();
     assertTrue(body.contains("master"), "Expected master in branch list but got: " + body);
   }
-
-  // create branch
 
   @Test
   @Order(2)
@@ -60,13 +55,11 @@ class BranchManagementIT extends AbstractServerIntegrationTest {
         "Expected feature/test in branch list but got: " + response.body());
   }
 
-  // branch state
   @Test
   @Order(4)
-  @DisplayName("GET /vsum/branch/state returns ACTIVE for existing branch")
+  @DisplayName("GET /vsum/branch/{branchName}/state returns ACTIVE for existing branch")
   void branchStateIsActiveForNewBranch() {
-    HttpResponse<String> response = get("/vsum/branch/state",
-        Header.BRANCH_NAME, "feature/test");
+    HttpResponse<String> response = get("/vsum/branch/feature%2Ftest/state");
 
     assertEquals(HttpURLConnection.HTTP_OK, response.statusCode());
     assertTrue(response.body().contains("ACTIVE"),
@@ -75,14 +68,13 @@ class BranchManagementIT extends AbstractServerIntegrationTest {
 
   @Test
   @Order(5)
-  @DisplayName("GET /vsum/branch/state returns 400 when Branch-Name header missing")
-  void branchStateMissingHeaderReturns400() {
-    HttpResponse<String> response = get("/vsum/branch/state");
+  @DisplayName("GET /vsum/branch/{branchName} returns 400 when branch name is missing from path")
+  void branchStateMissingPathSegmentReturns400() {
+    HttpResponse<String> response = get("/vsum/branch/");
 
     assertEquals(HttpURLConnection.HTTP_BAD_REQUEST, response.statusCode());
   }
 
-  // branch topology
   @Test
   @Order(6)
   @DisplayName("GET /vsum/branch/topology returns master as parent of feature/test")
@@ -94,13 +86,11 @@ class BranchManagementIT extends AbstractServerIntegrationTest {
         "Expected master in topology but got: " + response.body());
   }
 
-  // switch branch
   @Test
   @Order(7)
-  @DisplayName("POST /vsum/branch/switch switches to feature/test")
+  @DisplayName("POST /vsum/branch/{branchName}/switch switches to feature/test")
   void switchBranchSucceeds() {
-    String body = "{\"name\":\"feature/test\"}";
-    HttpResponse<String> response = post("/vsum/branch/switch", body);
+    HttpResponse<String> response = post("/vsum/branch/feature%2Ftest/switch", "");
 
     assertEquals(HttpURLConnection.HTTP_OK, response.statusCode());
     assertTrue(response.body().contains("feature/test"),
@@ -109,23 +99,20 @@ class BranchManagementIT extends AbstractServerIntegrationTest {
 
   @Test
   @Order(8)
-  @DisplayName("POST /vsum/branch/switch switches back to master")
+  @DisplayName("POST /vsum/branch/{branchName}/switch switches back to master")
   void switchBackToMasterSucceeds() {
-    String body = "{\"name\":\"master\"}";
-    HttpResponse<String> response = post("/vsum/branch/switch", body);
+    HttpResponse<String> response = post("/vsum/branch/master/switch", "");
 
     assertEquals(HttpURLConnection.HTTP_OK, response.statusCode());
     assertTrue(response.body().contains("master"),
         "Expected master in response but got: " + response.body());
   }
 
-  // delete branch
   @Test
   @Order(9)
-  @DisplayName("DELETE /vsum/branch removes feature/test")
+  @DisplayName("DELETE /vsum/branch/{branchName} removes feature/test")
   void deleteBranchSucceeds() {
-    HttpResponse<String> response = delete("/vsum/branch",
-        Header.BRANCH_NAME, "feature/test");
+    HttpResponse<String> response = delete("/vsum/branch/feature%2Ftest");
 
     assertEquals(HttpURLConnection.HTTP_OK, response.statusCode());
   }
@@ -143,9 +130,68 @@ class BranchManagementIT extends AbstractServerIntegrationTest {
 
   @Test
   @Order(11)
-  @DisplayName("DELETE /vsum/branch returns 400 when Branch-Name header missing")
-  void deleteBranchMissingHeaderReturns400() {
-    HttpResponse<String> response = delete("/vsum/branch");
+  @DisplayName("DELETE /vsum/branch/{branchName} returns 400 when branch name is missing from path")
+  void deleteBranchMissingPathSegmentReturns400() {
+    HttpResponse<String> response = delete("/vsum/branch/");
+
+    assertEquals(HttpURLConnection.HTTP_BAD_REQUEST, response.statusCode());
+  }
+
+  @Test
+  @Order(12)
+  @DisplayName("GET /vsum/branch/{branchName} returns 200 with full branch metadata")
+  void getSingleBranchReturnsMetadata() {
+    post("/vsum/branch", "{\"name\":\"feature/single-get\",\"fromBranch\":\"master\"}");
+
+    HttpResponse<String> response = get("/vsum/branch/feature%2Fsingle-get");
+
+    assertEquals(HttpURLConnection.HTTP_OK, response.statusCode());
+    String body = response.body();
+    assertTrue(body.contains("feature/single-get"), "Expected branch name in response: " + body);
+    assertTrue(body.contains("maturity"), "Expected maturity field in response: " + body);
+    assertTrue(body.contains("state"), "Expected state field in response: " + body);
+  }
+
+  @Test
+  @Order(13)
+  @DisplayName("GET /vsum/branch/{branchName} returns 405 for a non-existent branch")
+  void getSingleBranchUnknownNameReturns405() {
+    HttpResponse<String> response = get("/vsum/branch/no-such-branch-xyz");
+
+    assertEquals(HttpURLConnection.HTTP_BAD_METHOD, response.statusCode());
+  }
+
+  @Test
+  @Order(14)
+  @DisplayName("PATCH /vsum/branch/{branchName}/maturity updates maturity to REVIEWED")
+  void setBranchMaturityReturns200() {
+    post("/vsum/branch", "{\"name\":\"feature/maturity-test\",\"fromBranch\":\"master\"}");
+
+    HttpResponse<String> response = patch(
+        "/vsum/branch/feature%2Fmaturity-test/maturity",
+        "{\"maturity\":\"REVIEWED\"}");
+
+    assertEquals(HttpURLConnection.HTTP_OK, response.statusCode());
+  }
+
+  @Test
+  @Order(15)
+  @DisplayName("GET /vsum/branch/{branchName} reflects updated maturity after PATCH")
+  void getBranchAfterMaturityUpdateShowsReviewed() {
+    HttpResponse<String> response = get("/vsum/branch/feature%2Fmaturity-test");
+
+    assertEquals(HttpURLConnection.HTTP_OK, response.statusCode());
+    assertTrue(response.body().contains("REVIEWED"),
+        "Expected REVIEWED maturity in response: " + response.body());
+  }
+
+  @Test
+  @Order(16)
+  @DisplayName("PATCH /vsum/branch/{branchName}/maturity returns 400 for an invalid maturity value")
+  void setBranchMaturityInvalidValueReturns400() {
+    HttpResponse<String> response = patch(
+        "/vsum/branch/feature%2Fmaturity-test/maturity",
+        "{\"maturity\":\"INVALID_LEVEL\"}");
 
     assertEquals(HttpURLConnection.HTTP_BAD_REQUEST, response.statusCode());
   }

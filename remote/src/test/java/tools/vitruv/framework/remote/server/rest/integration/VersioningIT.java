@@ -12,8 +12,6 @@ import org.junit.jupiter.api.MethodOrderer.OrderAnnotation;
 import org.junit.jupiter.api.Order;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestMethodOrder;
-import tools.vitruv.framework.remote.common.rest.constants.Header;
-
 /**
  * Integration tests for versioning endpoints.
  *
@@ -26,8 +24,6 @@ class VersioningIT extends AbstractServerIntegrationTest {
 
   private static final String VERSION_ID = "v1.0-it";
 
-  // setup: write and commit a model file
-
   @Test
   @Order(1)
   @DisplayName("setup: commit a dummy model file so HEAD has at least one commit")
@@ -39,8 +35,6 @@ class VersioningIT extends AbstractServerIntegrationTest {
     assertEquals(HttpURLConnection.HTTP_OK, response.statusCode(),
         "Setup commit failed: " + response.body());
   }
-
-  // create version
 
   @Test
   @Order(2)
@@ -66,7 +60,6 @@ class VersioningIT extends AbstractServerIntegrationTest {
     assertEquals(HttpURLConnection.HTTP_BAD_REQUEST, response.statusCode());
   }
 
-  // list versions
   @Test
   @Order(4)
   @DisplayName("GET /vsum/version returns JSON array containing the created version")
@@ -79,13 +72,11 @@ class VersioningIT extends AbstractServerIntegrationTest {
         "Expected " + VERSION_ID + " in list but got: " + body);
   }
 
-  // get version by ID
   @Test
   @Order(5)
-  @DisplayName("GET /vsum/version/detail returns version metadata")
+  @DisplayName("GET /vsum/version/{versionId} returns version metadata")
   void getVersionReturnsMetadata() {
-    HttpResponse<String> response = get("/vsum/version/detail",
-        Header.VERSION_ID, VERSION_ID);
+    HttpResponse<String> response = get("/vsum/version/" + VERSION_ID);
 
     assertEquals(HttpURLConnection.HTTP_OK, response.statusCode(),
         "Get version failed: " + response.body());
@@ -97,29 +88,26 @@ class VersioningIT extends AbstractServerIntegrationTest {
 
   @Test
   @Order(6)
-  @DisplayName("GET /vsum/version/detail returns 400 when Version-Id header missing")
-  void getVersionMissingHeaderReturns400() {
-    HttpResponse<String> response = get("/vsum/version/detail");
+  @DisplayName("GET /vsum/version/{versionId} returns 400 when version ID is missing from path")
+  void getVersionMissingPathSegmentReturns400() {
+    HttpResponse<String> response = get("/vsum/version/");
     assertEquals(HttpURLConnection.HTTP_BAD_REQUEST, response.statusCode());
   }
 
   @Test
   @Order(7)
-  @DisplayName("GET /vsum/version/detail returns 405 for unknown version ID")
+  @DisplayName("GET /vsum/version/{versionId} returns 405 for unknown version ID")
   void getVersionUnknownIdReturns405() {
-    HttpResponse<String> response = get("/vsum/version/detail",
-        Header.VERSION_ID, "nonexistent-v99");
+    HttpResponse<String> response = get("/vsum/version/nonexistent-v99");
     // notFound() in RestEndpoint maps to HTTP_BAD_METHOD (405) by convention.
     assertEquals(HttpURLConnection.HTTP_BAD_METHOD, response.statusCode());
   }
 
-  // rollback preview
   @Test
   @Order(8)
-  @DisplayName("POST /vsum/version/rollback/preview returns 200 with preview data")
+  @DisplayName("POST /vsum/version/{versionId}/rollback/preview returns 200 with preview data")
   void rollbackPreviewReturns200() {
-    HttpResponse<String> response = post("/vsum/version/rollback/preview", "",
-        Header.VERSION_ID, VERSION_ID);
+    HttpResponse<String> response = post("/vsum/version/" + VERSION_ID + "/rollback/preview", "");
 
     assertEquals(HttpURLConnection.HTTP_OK, response.statusCode(),
         "Rollback preview failed: " + response.body());
@@ -127,19 +115,17 @@ class VersioningIT extends AbstractServerIntegrationTest {
 
   @Test
   @Order(9)
-  @DisplayName("POST /vsum/version/rollback/preview returns 400 when Version-Id missing")
-  void rollbackPreviewMissingHeaderReturns400() {
-    HttpResponse<String> response = post("/vsum/version/rollback/preview", "");
-    assertEquals(HttpURLConnection.HTTP_BAD_REQUEST, response.statusCode());
+  @DisplayName("POST /vsum/version/{versionId}/rollback/preview returns 405 when version ID is missing")
+  void rollbackPreviewMissingPathSegmentReturns405() {
+    HttpResponse<String> response = post("/vsum/version/", "");
+    assertEquals(HttpURLConnection.HTTP_BAD_METHOD, response.statusCode());
   }
 
-  // delete version
   @Test
   @Order(10)
-  @DisplayName("DELETE /vsum/version/detail removes the version")
+  @DisplayName("DELETE /vsum/version/{versionId} removes the version")
   void deleteVersionReturns200() {
-    HttpResponse<String> response = delete("/vsum/version/detail",
-        Header.VERSION_ID, VERSION_ID);
+    HttpResponse<String> response = delete("/vsum/version/" + VERSION_ID);
 
     assertEquals(HttpURLConnection.HTTP_OK, response.statusCode(),
         "Delete version failed: " + response.body());
@@ -158,10 +144,82 @@ class VersioningIT extends AbstractServerIntegrationTest {
 
   @Test
   @Order(12)
-  @DisplayName("DELETE /vsum/version/detail returns 400 when Version-Id header missing")
-  void deleteVersionMissingHeaderReturns400() {
-    HttpResponse<String> response = delete("/vsum/version/detail");
+  @DisplayName("DELETE /vsum/version/{versionId} returns 400 when version ID is missing from path")
+  void deleteVersionMissingPathSegmentReturns400() {
+    HttpResponse<String> response = delete("/vsum/version/");
 
     assertEquals(HttpURLConnection.HTTP_BAD_REQUEST, response.statusCode());
+  }
+
+  @Test
+  @Order(13)
+  @DisplayName("setup: recreate version so branch-from-version and rollback tests have a target")
+  void setupRecreateVersion() {
+    String body = "{\"versionId\":\"" + VERSION_ID + "\","
+        + "\"description\":\"Recreated for branch and rollback tests\"}";
+    HttpResponse<String> response = post("/vsum/version", body);
+
+    assertEquals(HttpURLConnection.HTTP_OK, response.statusCode(),
+        "Recreate version failed: " + response.body());
+  }
+
+  @Test
+  @Order(14)
+  @DisplayName("POST /vsum/version/{id}/branch creates a branch from the version and returns branch metadata")
+  void createBranchFromVersionReturns200() {
+    String body = "{\"branchName\":\"feature/from-version-it\"}";
+    HttpResponse<String> response = post("/vsum/version/" + VERSION_ID + "/branch", body);
+
+    assertEquals(HttpURLConnection.HTTP_OK, response.statusCode(),
+        "Create branch from version failed: " + response.body());
+    String responseBody = response.body();
+    assertTrue(responseBody.contains("feature/from-version-it"),
+        "Expected branch name in response but got: " + responseBody);
+    assertTrue(responseBody.contains("maturity"),
+        "Expected maturity field in response but got: " + responseBody);
+  }
+
+  @Test
+  @Order(15)
+  @DisplayName("POST /vsum/version/{id}/branch returns 400 when branchName is blank")
+  void createBranchFromVersionBlankNameReturns400() {
+    String body = "{\"branchName\":\"   \"}";
+    HttpResponse<String> response = post("/vsum/version/" + VERSION_ID + "/branch", body);
+
+    assertEquals(HttpURLConnection.HTTP_BAD_REQUEST, response.statusCode());
+  }
+
+  @Test
+  @Order(16)
+  @DisplayName("POST /vsum/version/{id}/branch returns 405 for a non-existent version ID")
+  void createBranchFromVersionUnknownIdReturns405() {
+    String body = "{\"branchName\":\"feature/from-nonexistent\"}";
+    HttpResponse<String> response = post("/vsum/version/nonexistent-v99/branch", body);
+
+    assertEquals(HttpURLConnection.HTTP_BAD_METHOD, response.statusCode());
+  }
+
+  @Test
+  @Order(17)
+  @DisplayName("POST /vsum/version/{id}/rollback/confirm executes rollback and returns successful=true")
+  void rollbackConfirmReturnsSuccessful() {
+    HttpResponse<String> response = post("/vsum/version/" + VERSION_ID + "/rollback/confirm", "");
+
+    assertEquals(HttpURLConnection.HTTP_OK, response.statusCode(),
+        "Rollback confirm failed: " + response.body());
+    String body = response.body();
+    assertTrue(body.contains("successful"),
+        "Expected 'successful' field in rollback confirm response but got: " + body);
+    assertTrue(body.contains("true"),
+        "Expected successful=true in rollback confirm response but got: " + body);
+  }
+
+  @Test
+  @Order(18)
+  @DisplayName("POST /vsum/version/{id}/rollback/confirm returns 405 for a non-existent version ID")
+  void rollbackConfirmUnknownIdReturns405() {
+    HttpResponse<String> response = post("/vsum/version/nonexistent-v99/rollback/confirm", "");
+
+    assertEquals(HttpURLConnection.HTTP_BAD_METHOD, response.statusCode());
   }
 }

@@ -23,6 +23,12 @@ public final class Header {
   /** The Version-Id header key. */
   public static final String VERSION_ID = "Version-Id";
 
+  /** The Base-Branch header key (used by the delta endpoint to specify the comparison base). */
+  public static final String BASE_BRANCH = "Base-Branch";
+
+  /** The Format header key (values: json, text, mermaid). */
+  public static final String FORMAT = "Format";
+
   private Header() throws InstantiationException {
     throw new InstantiationException("Cannot be instantiated");
   }

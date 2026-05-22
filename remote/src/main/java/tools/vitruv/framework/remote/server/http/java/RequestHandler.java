@@ -33,7 +33,7 @@ class RequestHandler implements HttpHandler {
   @Override
   public void handle(HttpExchange exchange) {
     var method = exchange.getRequestMethod();
-    var wrapper = new HttpExchangeWrapper(exchange);
+    var wrapper = new HttpExchangeWrapper(exchange, endpoints.path());
     try {
       var response =
           switch (method) {

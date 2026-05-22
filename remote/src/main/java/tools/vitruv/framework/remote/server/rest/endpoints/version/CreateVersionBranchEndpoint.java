@@ -4,7 +4,6 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import java.io.IOException;
 import tools.vitruv.framework.remote.common.json.JsonMapper;
 import tools.vitruv.framework.remote.common.rest.constants.ContentType;
-import tools.vitruv.framework.remote.common.rest.constants.Header;
 import tools.vitruv.framework.remote.server.exception.ServerHaltingException;
 import tools.vitruv.framework.remote.server.http.HttpWrapper;
 import tools.vitruv.framework.remote.server.rest.PostEndpoint;
@@ -16,7 +15,7 @@ import tools.vitruv.framework.vsum.versioning.VersioningService;
  * {@code POST /vsum/version/branch}
  *
  * <p>Creates a new Git branch whose V-SUM state is initialised from the given version's commit.
- * The version ID is passed via the {@code Version-Id} header.
+ * The version ID is extracted from path segment 0 after {@code /vsum/version/}.
  *
  * <p>Expected request body:
  * <pre>
@@ -46,9 +45,9 @@ public class CreateVersionBranchEndpoint implements PostEndpoint {
 
   @Override
   public String process(HttpWrapper wrapper) throws ServerHaltingException {
-    String versionId = wrapper.getRequestHeader(Header.VERSION_ID);
+    String versionId = wrapper.getPathSegment(0);
     if (versionId == null || versionId.isBlank()) {
-      throw badRequest("Missing required header: " + Header.VERSION_ID);
+      throw badRequest("Missing version ID in path");
     }
     try {
       String body = wrapper.getRequestBodyAsString();

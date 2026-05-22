@@ -5,7 +5,6 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import tools.vitruv.framework.remote.common.json.JsonMapper;
-import tools.vitruv.framework.remote.common.rest.constants.Header;
 import tools.vitruv.framework.remote.server.exception.ServerHaltingException;
 import tools.vitruv.framework.remote.server.http.HttpWrapper;
 import tools.vitruv.framework.remote.server.rest.endpoints.changelog.ChangelogEndpoint;
@@ -61,7 +60,7 @@ class CommitChangelogEndpointTest {
     @Test
     @DisplayName("returns serialized commit list for valid branch")
     void returnsSerializedCommitList() throws Exception {
-      when(wrapper.getRequestHeader(Header.BRANCH_NAME)).thenReturn("master");
+      when(wrapper.getPathSegment(0)).thenReturn("master");
       List<CommitSummary> summaries = List.of(
           new CommitSummary("abc123", "abc123", "master",
               "Test User", "test@example.com", "2026-04-07T14:00:00",
@@ -78,7 +77,7 @@ class CommitChangelogEndpointTest {
     @Test
     @DisplayName("returns empty list when branch has no commits")
     void returnsEmptyListForBranchWithNoCommits() throws Exception {
-      when(wrapper.getRequestHeader(Header.BRANCH_NAME)).thenReturn("empty-branch");
+      when(wrapper.getPathSegment(0)).thenReturn("empty-branch");
       when(commitManager.listCommits("empty-branch")).thenReturn(List.of());
       when(mapper.serialize(List.of())).thenReturn("[]");
 
@@ -88,9 +87,9 @@ class CommitChangelogEndpointTest {
     }
 
     @Test
-    @DisplayName("throws 400 when Branch-Name header is missing")
+    @DisplayName("throws 400 when branch name is missing from path")
     void throws400WhenBranchNameHeaderMissing() {
-      when(wrapper.getRequestHeader(Header.BRANCH_NAME)).thenReturn(null);
+      when(wrapper.getPathSegment(0)).thenReturn(null);
 
       ServerHaltingException ex = assertThrows(ServerHaltingException.class,
           () -> endpoint.process(wrapper));
@@ -99,9 +98,9 @@ class CommitChangelogEndpointTest {
     }
 
     @Test
-    @DisplayName("throws 400 when Branch-Name header is blank")
+    @DisplayName("throws 400 when branch name path segment is blank")
     void throws400WhenBranchNameHeaderBlank() {
-      when(wrapper.getRequestHeader(Header.BRANCH_NAME)).thenReturn("   ");
+      when(wrapper.getPathSegment(0)).thenReturn("   ");
 
       ServerHaltingException ex = assertThrows(ServerHaltingException.class,
           () -> endpoint.process(wrapper));
@@ -112,7 +111,7 @@ class CommitChangelogEndpointTest {
     @Test
     @DisplayName("throws 500 when CommitManager throws BranchOperationException")
     void throws500WhenCommitManagerThrows() throws Exception {
-      when(wrapper.getRequestHeader(Header.BRANCH_NAME)).thenReturn("master");
+      when(wrapper.getPathSegment(0)).thenReturn("master");
       when(commitManager.listCommits("master"))
           .thenThrow(new BranchOperationException("git error"));
 
@@ -207,8 +206,8 @@ class CommitChangelogEndpointTest {
     @Test
     @DisplayName("returns raw changelog JSON when found")
     void returnsSerializedChangelog() throws Exception {
-      when(wrapper.getRequestHeader(Header.BRANCH_NAME)).thenReturn("master");
-      when(wrapper.getRequestHeader(Header.COMMIT_SHA)).thenReturn("a1b2c3d");
+      when(wrapper.getPathSegment(0)).thenReturn("master");
+      when(wrapper.getPathSegment(1)).thenReturn("a1b2c3d");
       when(commitManager.readChangelogRaw("master", "a1b2c3d"))
           .thenReturn("{\"formatVersion\":\"1.0\"}");
 
@@ -221,8 +220,8 @@ class CommitChangelogEndpointTest {
     @Test
     @DisplayName("throws 405 when no changelog exists for branch and SHA")
     void throws405WhenNoChangelogFound() throws Exception {
-      when(wrapper.getRequestHeader(Header.BRANCH_NAME)).thenReturn("master");
-      when(wrapper.getRequestHeader(Header.COMMIT_SHA)).thenReturn("a1b2c3d");
+      when(wrapper.getPathSegment(0)).thenReturn("master");
+      when(wrapper.getPathSegment(1)).thenReturn("a1b2c3d");
       when(commitManager.readChangelogRaw("master", "a1b2c3d")).thenReturn(null);
 
       ServerHaltingException ex = assertThrows(ServerHaltingException.class,
@@ -232,10 +231,10 @@ class CommitChangelogEndpointTest {
     }
 
     @Test
-    @DisplayName("throws 400 when Branch-Name header is missing")
+    @DisplayName("throws 400 when branch name is missing from path")
     void throws400WhenBranchNameMissing() {
-      when(wrapper.getRequestHeader(Header.BRANCH_NAME)).thenReturn(null);
-      when(wrapper.getRequestHeader(Header.COMMIT_SHA)).thenReturn("a1b2c3d");
+      when(wrapper.getPathSegment(0)).thenReturn(null);
+      when(wrapper.getPathSegment(1)).thenReturn("a1b2c3d");
 
       ServerHaltingException ex = assertThrows(ServerHaltingException.class,
           () -> endpoint.process(wrapper));
@@ -244,10 +243,10 @@ class CommitChangelogEndpointTest {
     }
 
     @Test
-    @DisplayName("throws 400 when Commit-Sha header is missing")
+    @DisplayName("throws 400 when commit SHA is missing from path")
     void throws400WhenCommitShaMissing() {
-      when(wrapper.getRequestHeader(Header.BRANCH_NAME)).thenReturn("master");
-      when(wrapper.getRequestHeader(Header.COMMIT_SHA)).thenReturn(null);
+      when(wrapper.getPathSegment(0)).thenReturn("master");
+      when(wrapper.getPathSegment(1)).thenReturn(null);
 
       ServerHaltingException ex = assertThrows(ServerHaltingException.class,
           () -> endpoint.process(wrapper));
@@ -256,10 +255,10 @@ class CommitChangelogEndpointTest {
     }
 
     @Test
-    @DisplayName("throws 400 when Commit-Sha header is blank")
+    @DisplayName("throws 400 when commit SHA path segment is blank")
     void throws400WhenCommitShaBlank() {
-      when(wrapper.getRequestHeader(Header.BRANCH_NAME)).thenReturn("master");
-      when(wrapper.getRequestHeader(Header.COMMIT_SHA)).thenReturn("   ");
+      when(wrapper.getPathSegment(0)).thenReturn("master");
+      when(wrapper.getPathSegment(1)).thenReturn("   ");
 
       ServerHaltingException ex = assertThrows(ServerHaltingException.class,
           () -> endpoint.process(wrapper));
@@ -270,8 +269,8 @@ class CommitChangelogEndpointTest {
     @Test
     @DisplayName("throws 500 when CommitManager throws BranchOperationException")
     void throws500WhenCommitManagerThrows() throws Exception {
-      when(wrapper.getRequestHeader(Header.BRANCH_NAME)).thenReturn("master");
-      when(wrapper.getRequestHeader(Header.COMMIT_SHA)).thenReturn("a1b2c3d");
+      when(wrapper.getPathSegment(0)).thenReturn("master");
+      when(wrapper.getPathSegment(1)).thenReturn("a1b2c3d");
       when(commitManager.readChangelogRaw("master", "a1b2c3d"))
           .thenThrow(new BranchOperationException("io error"));
 

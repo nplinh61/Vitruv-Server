@@ -3,7 +3,6 @@ package tools.vitruv.framework.remote.server.rest.endpoints.version;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import tools.vitruv.framework.remote.common.json.JsonMapper;
 import tools.vitruv.framework.remote.common.rest.constants.ContentType;
-import tools.vitruv.framework.remote.common.rest.constants.Header;
 import tools.vitruv.framework.remote.server.exception.ServerHaltingException;
 import tools.vitruv.framework.remote.server.http.HttpWrapper;
 import tools.vitruv.framework.remote.server.rest.PostEndpoint;
@@ -15,17 +14,16 @@ import tools.vitruv.framework.vsum.versioning.data.RollbackPreview;
  * {@code POST /vsum/version/rollback/confirm}
  *
  * <p>Executes a rollback to the given version. Resets the working directory via
- * {@code git reset --hard} and reloads the V-SUM. This operation is irreversible -
- * uncommitted changes and commits after the target version are permanently lost.
+ * {@code git reset --hard} and reloads the V-SUM. This operation is irreversible.
+ * Uncommitted changes and commits after the target version are permanently lost.
  *
  * <p>This is step 2 of a two-step rollback. Call
  * {@code POST /vsum/version/rollback/preview} first to review the impact.
- * The version ID is passed via the {@code Version-Id} header.
+ * The version ID is extracted from path segment 0 after {@code /vsum/version/}.
  *
  * <p>Example request:
  * <pre>
- *   POST /vsum/version/rollback/confirm
- *   Version-Id: v1.0
+ *   POST /vsum/version/v1.0/rollback/confirm
  * </pre>
  *
  * <p>Returns {@code 405} if the version does not exist.
@@ -48,9 +46,9 @@ public class RollbackConfirmEndpoint implements PostEndpoint {
 
   @Override
   public String process(HttpWrapper wrapper) throws ServerHaltingException {
-    String versionId = wrapper.getRequestHeader(Header.VERSION_ID);
+    String versionId = wrapper.getPathSegment(0);
     if (versionId == null || versionId.isBlank()) {
-      throw badRequest("Missing required header: " + Header.VERSION_ID);
+      throw badRequest("Missing version ID in path");
     }
     try {
       RollbackPreview preview = versioningService.previewRollback(versionId);

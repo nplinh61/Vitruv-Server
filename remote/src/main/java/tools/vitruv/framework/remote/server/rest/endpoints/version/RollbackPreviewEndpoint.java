@@ -3,7 +3,6 @@ package tools.vitruv.framework.remote.server.rest.endpoints.version;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import tools.vitruv.framework.remote.common.json.JsonMapper;
 import tools.vitruv.framework.remote.common.rest.constants.ContentType;
-import tools.vitruv.framework.remote.common.rest.constants.Header;
 import tools.vitruv.framework.remote.server.exception.ServerHaltingException;
 import tools.vitruv.framework.remote.server.http.HttpWrapper;
 import tools.vitruv.framework.remote.server.rest.PostEndpoint;
@@ -15,15 +14,14 @@ import tools.vitruv.framework.vsum.versioning.VersioningService;
  *
  * <p>Previews a rollback to the given version without executing it. Returns the list of commits
  * that will be abandoned, files that will change, and whether uncommitted changes are present.
- * The version ID is passed via the {@code Version-Id} header.
+ * The version ID is extracted from path segment 0 after {@code /vsum/version/}.
  *
  * <p>This is step 1 of a two-step rollback. Call
  * {@code POST /vsum/version/rollback/confirm} to execute after reviewing the preview.
  *
  * <p>Example request:
  * <pre>
- *   POST /vsum/version/rollback/preview
- *   Version-Id: v1.0
+ *   POST /vsum/version/v1.0/rollback/preview
  * </pre>
  *
  * <p>Returns {@code 405} if the version does not exist.
@@ -46,9 +44,9 @@ public class RollbackPreviewEndpoint implements PostEndpoint {
 
   @Override
   public String process(HttpWrapper wrapper) throws ServerHaltingException {
-    String versionId = wrapper.getRequestHeader(Header.VERSION_ID);
+    String versionId = wrapper.getPathSegment(0);
     if (versionId == null || versionId.isBlank()) {
-      throw badRequest("Missing required header: " + Header.VERSION_ID);
+      throw badRequest("Missing version ID in path");
     }
     try {
       RollbackPreviewResponse response = RollbackPreviewResponse.from(

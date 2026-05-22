@@ -84,7 +84,9 @@ public class ServerMain {
         .withViewType(ViewTypeFactory.createIdentityMappingViewType("default"))
         .buildAndInitialize();
 
-    BranchAwareVirtualModel branchModel = new BranchAwareVirtualModel(repoRoot, innerModel);
+    BranchManager branchManager = new BranchManager(repoRoot);
+    BranchAwareVirtualModel branchModel = new BranchAwareVirtualModel(repoRoot, innerModel,
+        branchManager);
     System.out.println("Active branch: " + branchModel.getActiveBranch());
 
     GitHookInstaller hookInstaller = new GitHookInstaller(repoRoot);
@@ -94,8 +96,6 @@ public class ServerMain {
       hookInstaller.installAllHooks();
       System.out.println("Git hooks installed.");
     }
-
-    BranchManager branchManager = new BranchManager(repoRoot);
 
     CommitManager commitManager = new CommitManager(repoRoot);
     commitManager.attachSemanticChangeTracking(
@@ -117,7 +117,7 @@ public class ServerMain {
         UserInteractionFactory.instance.createPredefinedInteractionResultProvider(null));
     mergeManager.setMergeEngine(mergeEngine);
 
-    VersioningService versioningService = new VersioningService(repoRoot, innerModel);
+    VersioningService versioningService = new VersioningService(repoRoot, innerModel::reload, branchManager);
 
     VitruvServer server = new VitruvServer(() -> branchModel, branchManager, commitManager,
         mergeManager, versioningService);

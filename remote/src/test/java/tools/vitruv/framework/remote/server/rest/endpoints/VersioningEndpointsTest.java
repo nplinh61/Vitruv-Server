@@ -5,7 +5,6 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import tools.vitruv.framework.remote.common.json.JsonMapper;
-import tools.vitruv.framework.remote.common.rest.constants.Header;
 import tools.vitruv.framework.remote.server.exception.ServerHaltingException;
 import tools.vitruv.framework.remote.server.http.HttpWrapper;
 import tools.vitruv.framework.remote.server.rest.endpoints.version.*;
@@ -183,7 +182,7 @@ class VersioningEndpointsTest {
     @Test
     @DisplayName("returns serialized version for existing version ID")
     void returnsSerializedVersion() throws Exception {
-      when(wrapper.getRequestHeader(Header.VERSION_ID)).thenReturn("v1.0");
+      when(wrapper.getPathSegment(0)).thenReturn("v1.0");
       when(versioningService.getVersion("v1.0")).thenReturn(sampleVersion());
       when(mapper.serialize(any())).thenReturn("{\"versionId\":\"v1.0\"}");
 
@@ -194,9 +193,9 @@ class VersioningEndpointsTest {
     }
 
     @Test
-    @DisplayName("throws 400 when Version-Id header is missing")
+    @DisplayName("throws 400 when version ID is missing from path")
     void throws400WhenVersionIdHeaderMissing() {
-      when(wrapper.getRequestHeader(Header.VERSION_ID)).thenReturn(null);
+      when(wrapper.getPathSegment(0)).thenReturn(null);
 
       ServerHaltingException ex = assertThrows(ServerHaltingException.class,
           () -> endpoint.process(wrapper));
@@ -205,9 +204,9 @@ class VersioningEndpointsTest {
     }
 
     @Test
-    @DisplayName("throws 400 when Version-Id header is blank")
+    @DisplayName("throws 400 when version ID path segment is blank")
     void throws400WhenVersionIdHeaderBlank() {
-      when(wrapper.getRequestHeader(Header.VERSION_ID)).thenReturn("   ");
+      when(wrapper.getPathSegment(0)).thenReturn("   ");
 
       ServerHaltingException ex = assertThrows(ServerHaltingException.class,
           () -> endpoint.process(wrapper));
@@ -218,7 +217,7 @@ class VersioningEndpointsTest {
     @Test
     @DisplayName("throws 405 when version does not exist")
     void throws405WhenVersionNotFound() throws Exception {
-      when(wrapper.getRequestHeader(Header.VERSION_ID)).thenReturn("nonexistent");
+      when(wrapper.getPathSegment(0)).thenReturn("nonexistent");
       when(versioningService.getVersion("nonexistent"))
           .thenThrow(new VersioningException("version not found"));
 
@@ -244,7 +243,7 @@ class VersioningEndpointsTest {
     @Test
     @DisplayName("deletes version and returns null body")
     void deletesVersionAndReturnsNull() throws Exception {
-      when(wrapper.getRequestHeader(Header.VERSION_ID)).thenReturn("v1.0");
+      when(wrapper.getPathSegment(0)).thenReturn("v1.0");
 
       String result = endpoint.process(wrapper);
 
@@ -253,9 +252,9 @@ class VersioningEndpointsTest {
     }
 
     @Test
-    @DisplayName("throws 400 when Version-Id header is missing")
+    @DisplayName("throws 400 when version ID is missing from path")
     void throws400WhenVersionIdHeaderMissing() {
-      when(wrapper.getRequestHeader(Header.VERSION_ID)).thenReturn(null);
+      when(wrapper.getPathSegment(0)).thenReturn(null);
 
       ServerHaltingException ex = assertThrows(ServerHaltingException.class,
           () -> endpoint.process(wrapper));
@@ -266,7 +265,7 @@ class VersioningEndpointsTest {
     @Test
     @DisplayName("throws 405 when version does not exist")
     void throws405WhenVersionNotFound() throws Exception {
-      when(wrapper.getRequestHeader(Header.VERSION_ID)).thenReturn("nonexistent");
+      when(wrapper.getPathSegment(0)).thenReturn("nonexistent");
       org.mockito.Mockito.doThrow(new VersioningException("version not found"))
           .when(versioningService).deleteVersion("nonexistent");
 
@@ -294,7 +293,7 @@ class VersioningEndpointsTest {
     void returnsSerializedPreview() throws Exception {
       VersionMetadata version = sampleVersion();
       RollbackPreview preview = samplePreview(version);
-      when(wrapper.getRequestHeader(Header.VERSION_ID)).thenReturn("v1.0");
+      when(wrapper.getPathSegment(0)).thenReturn("v1.0");
       when(versioningService.previewRollback("v1.0")).thenReturn(preview);
       when(mapper.serialize(any())).thenReturn("{\"versionId\":\"v1.0\"}");
 
@@ -305,9 +304,9 @@ class VersioningEndpointsTest {
     }
 
     @Test
-    @DisplayName("throws 400 when Version-Id header is missing")
+    @DisplayName("throws 400 when version ID is missing from path")
     void throws400WhenVersionIdMissing() {
-      when(wrapper.getRequestHeader(Header.VERSION_ID)).thenReturn(null);
+      when(wrapper.getPathSegment(0)).thenReturn(null);
 
       ServerHaltingException ex = assertThrows(ServerHaltingException.class,
           () -> endpoint.process(wrapper));
@@ -318,7 +317,7 @@ class VersioningEndpointsTest {
     @Test
     @DisplayName("throws 405 when version does not exist")
     void throws405WhenVersionNotFound() throws Exception {
-      when(wrapper.getRequestHeader(Header.VERSION_ID)).thenReturn("nonexistent");
+      when(wrapper.getPathSegment(0)).thenReturn("nonexistent");
       when(versioningService.previewRollback("nonexistent"))
           .thenThrow(new VersioningException("version not found"));
 
@@ -348,7 +347,7 @@ class VersioningEndpointsTest {
       RollbackPreview preview = samplePreview(version);
       RollbackResult rollbackResult = RollbackResult.success(version,
           "abc123def456abc123def456abc123def456abc1");
-      when(wrapper.getRequestHeader(Header.VERSION_ID)).thenReturn("v1.0");
+      when(wrapper.getPathSegment(0)).thenReturn("v1.0");
       when(versioningService.previewRollback("v1.0")).thenReturn(preview);
       when(versioningService.confirmRollback(preview)).thenReturn(rollbackResult);
       when(mapper.serialize(any())).thenReturn("{\"status\":\"SUCCESS\"}");
@@ -362,9 +361,9 @@ class VersioningEndpointsTest {
     }
 
     @Test
-    @DisplayName("throws 400 when Version-Id header is missing")
+    @DisplayName("throws 400 when version ID is missing from path")
     void throws400WhenVersionIdMissing() {
-      when(wrapper.getRequestHeader(Header.VERSION_ID)).thenReturn(null);
+      when(wrapper.getPathSegment(0)).thenReturn(null);
 
       ServerHaltingException ex = assertThrows(ServerHaltingException.class,
           () -> endpoint.process(wrapper));
@@ -375,7 +374,7 @@ class VersioningEndpointsTest {
     @Test
     @DisplayName("throws 405 when version does not exist during preview phase")
     void throws405WhenVersionNotFoundDuringPreview() throws Exception {
-      when(wrapper.getRequestHeader(Header.VERSION_ID)).thenReturn("nonexistent");
+      when(wrapper.getPathSegment(0)).thenReturn("nonexistent");
       when(versioningService.previewRollback("nonexistent"))
           .thenThrow(new VersioningException("version not found"));
 
@@ -403,7 +402,7 @@ class VersioningEndpointsTest {
     @DisplayName("creates branch from version and returns serialized branch response")
     void createsBranchFromVersionAndReturnsResponse() throws Exception {
       String body = "{\"branchName\":\"feature/from-v1.0\"}";
-      when(wrapper.getRequestHeader(Header.VERSION_ID)).thenReturn("v1.0");
+      when(wrapper.getPathSegment(0)).thenReturn("v1.0");
       when(wrapper.getRequestBodyAsString()).thenReturn(body);
       when(mapper.deserialize(body, CreateVersionBranchRequest.class))
           .thenReturn(new CreateVersionBranchRequest("feature/from-v1.0"));
@@ -422,9 +421,9 @@ class VersioningEndpointsTest {
     }
 
     @Test
-    @DisplayName("throws 400 when Version-Id header is missing")
+    @DisplayName("throws 400 when version ID is missing from path")
     void throws400WhenVersionIdHeaderMissing() {
-      when(wrapper.getRequestHeader(Header.VERSION_ID)).thenReturn(null);
+      when(wrapper.getPathSegment(0)).thenReturn(null);
 
       ServerHaltingException ex = assertThrows(ServerHaltingException.class,
           () -> endpoint.process(wrapper));
@@ -436,7 +435,7 @@ class VersioningEndpointsTest {
     @DisplayName("throws 400 when branchName in body is blank")
     void throws400WhenBranchNameBlank() throws Exception {
       String body = "{\"branchName\":\"\"}";
-      when(wrapper.getRequestHeader(Header.VERSION_ID)).thenReturn("v1.0");
+      when(wrapper.getPathSegment(0)).thenReturn("v1.0");
       when(wrapper.getRequestBodyAsString()).thenReturn(body);
       when(mapper.deserialize(eq(body), any()))
           .thenReturn(new CreateVersionBranchRequest(""));
@@ -452,7 +451,7 @@ class VersioningEndpointsTest {
     @DisplayName("throws 405 when version does not exist")
     void throws405WhenVersionNotFound() throws Exception {
       String body = "{\"branchName\":\"feature/x\"}";
-      when(wrapper.getRequestHeader(Header.VERSION_ID)).thenReturn("nonexistent");
+      when(wrapper.getPathSegment(0)).thenReturn("nonexistent");
       when(wrapper.getRequestBodyAsString()).thenReturn(body);
       when(mapper.deserialize(eq(body), any()))
           .thenReturn(new CreateVersionBranchRequest("feature/x"));
@@ -469,7 +468,7 @@ class VersioningEndpointsTest {
     @DisplayName("throws 405 when branch name is already taken")
     void throws405WhenBranchAlreadyExists() throws Exception {
       String body = "{\"branchName\":\"existing-branch\"}";
-      when(wrapper.getRequestHeader(Header.VERSION_ID)).thenReturn("v1.0");
+      when(wrapper.getPathSegment(0)).thenReturn("v1.0");
       when(wrapper.getRequestBodyAsString()).thenReturn(body);
       when(mapper.deserialize(eq(body), any()))
           .thenReturn(new CreateVersionBranchRequest("existing-branch"));

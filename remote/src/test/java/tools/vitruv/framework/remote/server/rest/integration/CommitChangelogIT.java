@@ -15,7 +15,6 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestMethodOrder;
 import tools.vitruv.framework.remote.client.VitruvClient;
 import tools.vitruv.framework.remote.client.impl.VitruvRemoteConnection;
-import tools.vitruv.framework.remote.common.rest.constants.Header;
 import tools.vitruv.framework.views.CommittableView;
 import tools.vitruv.framework.views.View;
 import tools.vitruv.framework.views.ViewSelector;
@@ -77,9 +76,9 @@ class CommitChangelogIT extends AbstractServerIntegrationTest {
 
   @Test
   @Order(1)
-  @DisplayName("GET /vsum/commit returns empty list before any commit")
+  @DisplayName("GET /vsum/commit/{branchName} returns empty list before any commit")
   void listCommitsEmptyInitially() {
-    HttpResponse<String> response = get("/vsum/commit", Header.BRANCH_NAME, "master");
+    HttpResponse<String> response = get("/vsum/commit/master");
 
     assertEquals(HttpURLConnection.HTTP_OK, response.statusCode());
     String body = response.body();
@@ -89,9 +88,9 @@ class CommitChangelogIT extends AbstractServerIntegrationTest {
 
   @Test
   @Order(2)
-  @DisplayName("GET /vsum/commit returns 400 when Branch-Name header missing")
-  void listCommitsMissingHeaderReturns400() {
-    HttpResponse<String> response = get("/vsum/commit");
+  @DisplayName("GET /vsum/commit/{branchName} returns 400 when branch name is missing from path")
+  void listCommitsMissingPathSegmentReturns400() {
+    HttpResponse<String> response = get("/vsum/commit/");
 
     assertEquals(HttpURLConnection.HTTP_BAD_REQUEST, response.statusCode());
   }
@@ -151,9 +150,9 @@ class CommitChangelogIT extends AbstractServerIntegrationTest {
 
   @Test
   @Order(5)
-  @DisplayName("GET /vsum/commit returns at least one commit after committing")
+  @DisplayName("GET /vsum/commit/{branchName} returns at least one commit after committing")
   void listCommitsNonEmptyAfterCommit() {
-    HttpResponse<String> response = get("/vsum/commit", Header.BRANCH_NAME, "master");
+    HttpResponse<String> response = get("/vsum/commit/master");
 
     assertEquals(HttpURLConnection.HTTP_OK, response.statusCode());
     String body = response.body();
@@ -164,22 +163,20 @@ class CommitChangelogIT extends AbstractServerIntegrationTest {
 
   @Test
   @Order(6)
-  @DisplayName("GET /vsum/changelog returns 400 when headers missing")
-  void changelogMissingHeadersReturns400() {
-    HttpResponse<String> response = get("/vsum/changelog");
+  @DisplayName("GET /vsum/changelog/{branchName}/{sha} returns 400 when branch name is missing from path")
+  void changelogMissingPathSegmentReturns400() {
+    HttpResponse<String> response = get("/vsum/changelog/");
 
     assertEquals(HttpURLConnection.HTTP_BAD_REQUEST, response.statusCode());
   }
 
   @Test
   @Order(7)
-  @DisplayName("GET /vsum/changelog returns changelog with semantic change entries")
+  @DisplayName("GET /vsum/changelog/{branchName}/{sha} returns changelog with semantic change entries")
   void changelogContainsSemanticChanges() {
     assertNotNull(commitSha, "commitSha must be set by test order 3");
 
-    HttpResponse<String> response = get("/vsum/changelog",
-        Header.BRANCH_NAME, "master",
-        Header.COMMIT_SHA, commitSha);
+    HttpResponse<String> response = get("/vsum/changelog/master/" + commitSha);
 
     assertEquals(HttpURLConnection.HTTP_OK, response.statusCode(),
         "Expected 200 but got " + response.statusCode() + ": " + response.body());

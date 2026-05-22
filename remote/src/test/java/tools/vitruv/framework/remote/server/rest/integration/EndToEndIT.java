@@ -14,7 +14,6 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestMethodOrder;
 import tools.vitruv.framework.remote.client.VitruvClient;
 import tools.vitruv.framework.remote.client.impl.VitruvRemoteConnection;
-import tools.vitruv.framework.remote.common.rest.constants.Header;
 import tools.vitruv.framework.views.CommittableView;
 import tools.vitruv.framework.views.View;
 import tools.vitruv.framework.views.ViewSelector;
@@ -97,8 +96,6 @@ class EndToEndIT extends AbstractServerIntegrationTest {
     return end > start ? json.substring(start, end) : null;
   }
 
-  // Phase 1: Baseline on master
-
   @Test
   @Order(1)
   @DisplayName("Phase 1a: add System on master via Vitruv API - consistency reaction creates Root in Model2")
@@ -135,7 +132,7 @@ class EndToEndIT extends AbstractServerIntegrationTest {
     sha1 = extractSha(response.body());
     assertNotNull(sha1, "Failed to extract commitSha from: " + response.body());
 
-    var commitsResponse = get("/vsum/commit", Header.BRANCH_NAME, "master");
+    var commitsResponse = get("/vsum/commit/master");
     assertEquals(200, commitsResponse.statusCode());
     assertTrue(commitsResponse.body().contains("Initial: add System"),
         "Commit list must contain the model commit: " + commitsResponse.body());
@@ -149,17 +146,13 @@ class EndToEndIT extends AbstractServerIntegrationTest {
   void changelogContainsEntriesForMasterCommit() {
     assertNotNull(sha1, "sha1 must be set by test order 2");
 
-    var response = get("/vsum/changelog",
-        Header.BRANCH_NAME, "master",
-        Header.COMMIT_SHA, sha1);
+    var response = get("/vsum/changelog/master/" + sha1);
 
     assertEquals(200, response.statusCode(),
         "Expected 200 but got " + response.statusCode() + ": " + response.body());
     assertTrue(response.body().contains("changeType"),
         "Changelog must contain changeType entries: " + response.body());
   }
-
-  // Phase 2: Feature branch with divergent model state
 
   @Test
   @Order(4)
@@ -170,8 +163,7 @@ class EndToEndIT extends AbstractServerIntegrationTest {
     assertEquals(200, create.statusCode(),
         "Branch creation failed: " + create.body());
 
-    var switchResponse = post("/vsum/branch/switch",
-        "{\"name\":\"" + FEATURE_BRANCH + "\"}");
+    var switchResponse = post("/vsum/branch/" + FEATURE_BRANCH.replace("/", "%2F") + "/switch", "");
     assertEquals(200, switchResponse.statusCode(),
         "Branch switch failed: " + switchResponse.body());
     assertTrue(switchResponse.body().contains(FEATURE_BRANCH),
@@ -210,22 +202,18 @@ class EndToEndIT extends AbstractServerIntegrationTest {
         "Feature branch must show both Systems (inherited from master + new one)");
 
     assertNotNull(sha2, "sha2 must be set by test order 5");
-    var changelog = get("/vsum/changelog",
-        Header.BRANCH_NAME, FEATURE_BRANCH,
-        Header.COMMIT_SHA, sha2);
+    var changelog = get("/vsum/changelog/" + FEATURE_BRANCH.replace("/", "%2F") + "/" + sha2);
     assertEquals(200, changelog.statusCode(),
         "Expected changelog 200 but got " + changelog.statusCode() + ": " + changelog.body());
     assertTrue(changelog.body().contains("changeType"),
         "Feature branch changelog must contain changeType entries: " + changelog.body());
   }
 
-  // Phase 3: Branch isolation
-
   @Test
   @Order(7)
   @DisplayName("Phase 3: switch back to master - second System must not be visible (branch isolation)")
   void masterIsolatedFromFeatureBranchChanges() {
-    var switchResponse = post("/vsum/branch/switch", "{\"name\":\"master\"}");
+    var switchResponse = post("/vsum/branch/master/switch", "");
     assertEquals(200, switchResponse.statusCode(),
         "Switch back to master failed: " + switchResponse.body());
 
@@ -233,8 +221,6 @@ class EndToEndIT extends AbstractServerIntegrationTest {
     assertEquals(1, view.getRootObjects(System.class).size(),
         "Master must show only the original System - feature branch changes must not bleed over");
   }
-
-  // Phase 4: Version snapshot before merge
 
   @Test
   @Order(8)
@@ -247,14 +233,12 @@ class EndToEndIT extends AbstractServerIntegrationTest {
     assertTrue(create.body().contains(VERSION_ID),
         "Version response must contain the version ID: " + create.body());
 
-    var detail = get("/vsum/version/detail", Header.VERSION_ID, VERSION_ID);
+    var detail = get("/vsum/version/" + VERSION_ID);
     assertEquals(200, detail.statusCode(),
         "Version detail lookup failed: " + detail.body());
     assertTrue(detail.body().contains(VERSION_ID),
         "Version detail must contain the version ID: " + detail.body());
   }
-
-  // Phase 5: Merge and model state reconciliation
 
   @Test
   @Order(9)
@@ -286,7 +270,7 @@ class EndToEndIT extends AbstractServerIntegrationTest {
   @Order(11)
   @DisplayName("Phase 5c: master commit history contains the feature branch commit after merge")
   void masterCommitHistoryContainsFeatureCommit() {
-    var response = get("/vsum/commit", Header.BRANCH_NAME, "master");
+    var response = get("/vsum/commit/master");
     assertEquals(200, response.statusCode());
     // For a fast-forward merge there is no dedicated merge commit.
     // The feature branch commits are directly reachable from master HEAD.

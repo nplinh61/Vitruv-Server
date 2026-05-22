@@ -59,9 +59,7 @@ public class CreateBranchEndpoint implements PostEndpoint {
           branchManager.createBranch(request.name(), request.fromBranch()));
       wrapper.setContentType(ContentType.APPLICATION_JSON);
       return mapper.serialize(response);
-    } catch (BranchOperationException | JsonProcessingException e) {
-      throw internalServerError(e.getMessage());
-    } catch (IOException e) {
+    } catch (BranchOperationException | IOException e) {
       throw internalServerError(e.getMessage());
     }
   }

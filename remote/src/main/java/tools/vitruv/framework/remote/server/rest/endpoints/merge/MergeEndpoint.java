@@ -9,6 +9,7 @@ import tools.vitruv.framework.remote.server.rest.PostEndpoint;
 import tools.vitruv.framework.vsum.branch.MergeManager;
 import tools.vitruv.framework.vsum.branch.data.ModelMergeResult;
 import tools.vitruv.framework.vsum.branch.exception.BranchOperationException;
+import tools.vitruv.framework.vsum.branch.merge.ConflictResolutionProvider;
 
 /**
  * {@code POST /vsum/merge}
@@ -20,9 +21,13 @@ import tools.vitruv.framework.vsum.branch.exception.BranchOperationException;
  * <pre>
  * {
  *   "sourceBranch": "feature/my-feature",
- *   "deleteAfterMerge": false
+ *   "deleteAfterMerge": false,
+ *   "resolutionStrategy": "THEIRS"
  * }
  * </pre>
+ *
+ * <p>{@code resolutionStrategy} is optional. Omit it (or set to null) to let conflicts
+ * block the merge. Set to {@code "THEIRS"} or {@code "OURS"} for auto-resolution.
  *
  * <p>Returns the merge result as a JSON object:
  * <pre>
@@ -40,8 +45,7 @@ import tools.vitruv.framework.vsum.branch.exception.BranchOperationException;
  *
  * <p>Possible status values: {@code SUCCESS}, {@code FAST_FORWARD}, {@code CONFLICTING},
  * {@code FAILED}.
- * When {@code CONFLICTING}, {@code conflictingFiles} lists the paths of files with conflict
- * markers that must be resolved manually before committing.
+ * When {@code CONFLICTING}, {@code conflictingFiles} lists semantic conflict descriptors.
  */
 public class MergeEndpoint implements PostEndpoint {
 
@@ -67,10 +71,31 @@ public class MergeEndpoint implements PostEndpoint {
       if (request.sourceBranch() == null || request.sourceBranch().isBlank()) {
         throw badRequest("sourceBranch must not be blank");
       }
-      ModelMergeResult result = mergeManager.merge(
-          request.sourceBranch(), request.deleteAfterMerge());
-      wrapper.setContentType(ContentType.APPLICATION_JSON);
-      return mapper.serialize(result);
+
+      String strategy = request.resolutionStrategy();
+      boolean hasStrategy = strategy != null && !strategy.isBlank();
+      if (hasStrategy) {
+        ConflictResolutionProvider provider;
+        if ("THEIRS".equalsIgnoreCase(strategy)) {
+          provider = ConflictResolutionProvider.chooseAllTheirs();
+        } else if ("OURS".equalsIgnoreCase(strategy)) {
+          provider = ConflictResolutionProvider.chooseAllOurs();
+        } else {
+          throw badRequest("Unknown resolutionStrategy: " + strategy);
+        }
+        mergeManager.setConflictResolutionProvider(provider);
+      }
+
+      try {
+        ModelMergeResult result = mergeManager.merge(
+            request.sourceBranch(), request.deleteAfterMerge());
+        wrapper.setContentType(ContentType.APPLICATION_JSON);
+        return mapper.serialize(result);
+      } finally {
+        if (hasStrategy) {
+          mergeManager.clearConflictResolutionProvider();
+        }
+      }
     } catch (BranchOperationException | IOException e) {
       throw internalServerError(e.getMessage());
     }

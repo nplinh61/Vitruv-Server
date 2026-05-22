@@ -97,12 +97,13 @@ public abstract class AbstractServerIntegrationTest {
                 .withViewType(ViewTypeFactory.createIdentityMappingViewType("default"))
                 .buildAndInitialize();
 
-        // Wrap the inner model with branch awareness so that checkouts reload the
-        // in-memory model state from the newly checked-out branch on disk.
-        branchModel = new BranchAwareVirtualModel(repoRoot, innerModel);
-
         // BranchManager handles Git branch lifecycle (create, delete, switch, topology).
         BranchManager branchManager = new BranchManager(repoRoot);
+
+        // Wrap the inner model with branch awareness so that checkouts reload the
+        // in-memory model state from the newly checked-out branch on disk.
+        // Pass the shared BranchManager so only one instance exists per repository.
+        branchModel = new BranchAwareVirtualModel(repoRoot, innerModel, branchManager);
 
         // CommitManager handles Git commits. Attaching semantic change tracking
         // makes it listen to the model's change buffer so it can write a JSON
@@ -122,7 +123,7 @@ public abstract class AbstractServerIntegrationTest {
 
         // VersioningService manages named versions (annotated Git tags) and
         // rollback operations on top of the commit history.
-        VersioningService versioningService = new VersioningService(repoRoot, innerModel);
+        VersioningService versioningService = new VersioningService(repoRoot, innerModel::reload, branchManager);
 
         // Start the server on port 0 so the OS assigns a free port automatically.
         // This avoids port conflicts when multiple test classes run in parallel or

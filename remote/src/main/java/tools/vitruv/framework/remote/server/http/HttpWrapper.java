@@ -13,6 +13,24 @@ public interface HttpWrapper {
   String getRequestHeader(String header);
 
   /**
+   * Returns a path segment from the request URI, relative to the registered context prefix.
+   * Segment 0 is the first dynamic path segment (e.g., {@code branchName} or {@code versionId}).
+   * Returns {@code null} if the index is out of range.
+   *
+   * @param index zero-based segment index after the context prefix.
+   * @return the URL-decoded segment value, or {@code null}.
+   */
+  String getPathSegment(int index);
+
+  /**
+   * Returns a query parameter value from the request URI.
+   *
+   * @param name the parameter name.
+   * @return the URL-decoded value, or {@code null} if the parameter is absent.
+   */
+  String getQueryParameter(String name);
+
+  /**
    * Returns the request body converted to a String.
    *
    * @return The request body as String.

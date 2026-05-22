@@ -3,7 +3,6 @@ package tools.vitruv.framework.remote.server.rest.endpoints.commit;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import tools.vitruv.framework.remote.common.json.JsonMapper;
 import tools.vitruv.framework.remote.common.rest.constants.ContentType;
-import tools.vitruv.framework.remote.common.rest.constants.Header;
 import tools.vitruv.framework.remote.server.exception.ServerHaltingException;
 import tools.vitruv.framework.remote.server.http.HttpWrapper;
 import tools.vitruv.framework.remote.server.rest.GetEndpoint;
@@ -11,18 +10,17 @@ import tools.vitruv.framework.vsum.branch.CommitManager;
 import tools.vitruv.framework.vsum.branch.exception.BranchOperationException;
 
 /**
- * {@code GET /vsum/commit}
+ * {@code GET /vsum/commit/{branchName}}
  *
  * <p>Returns a list of all commits on the given branch, newest first.
- * The branch name is passed via the {@code Branch-Name} request header.
+ * The branch name is extracted from path segment 0 after {@code /vsum/commit/}.
  *
  * <p>Each entry includes commit metadata and, if a semantic changelog JSON was written
  * for that commit, the total number of semantic changes.
  *
  * <p>Example request:
  * <pre>
- *   GET /vsum/commit
- *   Branch-Name: feature/my-feature
+ *   GET /vsum/commit/feature%2Fmy-feature
  * </pre>
  *
  * <p>Example response:
@@ -61,9 +59,9 @@ public class ListCommitsEndpoint implements GetEndpoint {
 
   @Override
   public String process(HttpWrapper wrapper) throws ServerHaltingException {
-    String branch = wrapper.getRequestHeader(Header.BRANCH_NAME);
+    String branch = wrapper.getPathSegment(0);
     if (branch == null || branch.isBlank()) {
-      throw badRequest("Missing required header: " + Header.BRANCH_NAME);
+      throw badRequest("Missing branch name in path");
     }
     try {
       wrapper.setContentType(ContentType.APPLICATION_JSON);
