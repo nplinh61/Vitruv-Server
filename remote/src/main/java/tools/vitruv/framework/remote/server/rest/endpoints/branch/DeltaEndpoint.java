@@ -1,5 +1,8 @@
 package tools.vitruv.framework.remote.server.rest.endpoints.branch;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.SerializationFeature;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.ArrayList;
@@ -9,7 +12,6 @@ import org.eclipse.jgit.api.errors.GitAPIException;
 import org.eclipse.jgit.revwalk.RevCommit;
 import org.eclipse.jgit.revwalk.RevWalk;
 import org.eclipse.jgit.revwalk.filter.RevFilter;
-import tools.vitruv.framework.remote.common.json.JsonMapper;
 import tools.vitruv.framework.remote.common.rest.constants.ContentType;
 import tools.vitruv.framework.remote.server.exception.ServerHaltingException;
 import tools.vitruv.framework.remote.server.http.HttpWrapper;
@@ -53,13 +55,14 @@ import tools.vitruv.framework.vsum.branch.storage.SemanticChangelogManager.Chang
  */
 public class DeltaEndpoint implements GetEndpoint {
 
+  private static final ObjectMapper RESPONSE_MAPPER =
+      new ObjectMapper().enable(SerializationFeature.INDENT_OUTPUT);
+
   private final CommitManager commitManager;
-  private final JsonMapper mapper;
   private final Path repoRoot;
 
-  public DeltaEndpoint(CommitManager commitManager, JsonMapper mapper, Path repoRoot) {
+  public DeltaEndpoint(CommitManager commitManager, Path repoRoot) {
     this.commitManager = commitManager;
-    this.mapper = mapper;
     this.repoRoot = repoRoot;
   }
 
@@ -91,7 +94,7 @@ public class DeltaEndpoint implements GetEndpoint {
       }
 
       wrapper.setContentType(ContentType.APPLICATION_JSON);
-      return mapper.serialize(new DeltaResponse(branch, baseBranch, entries));
+      return RESPONSE_MAPPER.writeValueAsString(new DeltaResponse(branch, baseBranch, entries));
     } catch (BranchOperationException e) {
       throw notFound(e.getMessage());
     } catch (IOException | GitAPIException e) {
@@ -139,8 +142,10 @@ public class DeltaEndpoint implements GetEndpoint {
     if (entry.getEClass() != null) sb.append(" ").append(entry.getEClass());
     if (entry.getFeature() != null) {
       sb.append(".").append(entry.getFeature());
-      if (entry.getFrom() != null && entry.getTo() != null) {
-        sb.append(": ").append(entry.getFrom()).append(" -> ").append(entry.getTo());
+      if (entry.getTo() != null) {
+        sb.append(": ");
+        if (entry.getFrom() != null) sb.append(entry.getFrom()).append(" -> ");
+        sb.append(entry.getTo());
       }
     }
     return sb.toString();

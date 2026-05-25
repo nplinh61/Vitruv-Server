@@ -231,7 +231,7 @@ public class EndpointsProvider {
         var switchEndpoint = new SwitchBranchEndpoint(branchManager, mapper);
         var stateEndpoint = new BranchStateEndpoint(branchManager, mapper);
         var historyEndpoint = commitManager != null
-            ? (GetEndpoint) new BranchHistoryEndpoint(commitManager, mapper)
+            ? (GetEndpoint) new BranchHistoryEndpoint(commitManager)
             : def.getEndpoint();
         var conflictsEndpoint = new BranchConflictsEndpoint(virtualModel.getFolder(), mapper);
         var singleEndpoint = new GetSingleBranchEndpoint(branchManager, mapper);
@@ -265,7 +265,7 @@ public class EndpointsProvider {
             def.postEndpoint(), def.putEndpoint(), def.patchEndpoint(), def.deleteEndpoint()));
         result.add(new PathEndointCollector(
             EndpointPath.DELTA_BY_BRANCH,
-            new DeltaEndpoint(commitManager, mapper, virtualModel.getFolder()),
+            new DeltaEndpoint(commitManager, virtualModel.getFolder()),
             def.postEndpoint(), def.putEndpoint(), def.patchEndpoint(), def.deleteEndpoint()));
       }
 

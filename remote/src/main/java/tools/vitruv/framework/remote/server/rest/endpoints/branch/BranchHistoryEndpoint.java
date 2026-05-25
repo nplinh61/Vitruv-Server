@@ -1,9 +1,10 @@
 package tools.vitruv.framework.remote.server.rest.endpoints.branch;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.SerializationFeature;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
-import tools.vitruv.framework.remote.common.json.JsonMapper;
 import tools.vitruv.framework.remote.common.rest.constants.ContentType;
 import tools.vitruv.framework.remote.server.exception.ServerHaltingException;
 import tools.vitruv.framework.remote.server.http.HttpWrapper;
@@ -49,19 +50,18 @@ import tools.vitruv.framework.vsum.branch.storage.SemanticChangelogManager.Chang
 public class BranchHistoryEndpoint implements GetEndpoint {
 
   private static final int MAX_PREVIEW_LINES = 3;
+  private static final ObjectMapper RESPONSE_MAPPER =
+      new ObjectMapper().enable(SerializationFeature.INDENT_OUTPUT);
 
   private final CommitManager commitManager;
-  private final JsonMapper mapper;
 
   /**
    * Creates a new {@link BranchHistoryEndpoint}.
    *
    * @param commitManager the commit manager used to list commits and read changelogs.
-   * @param mapper the JSON mapper used to serialize the response.
    */
-  public BranchHistoryEndpoint(CommitManager commitManager, JsonMapper mapper) {
+  public BranchHistoryEndpoint(CommitManager commitManager) {
     this.commitManager = commitManager;
-    this.mapper = mapper;
   }
 
   @Override
@@ -98,7 +98,7 @@ public class BranchHistoryEndpoint implements GetEndpoint {
       }
 
       wrapper.setContentType(ContentType.APPLICATION_JSON);
-      return mapper.serialize(new BranchHistoryResponse(branch, entries));
+      return RESPONSE_MAPPER.writeValueAsString(new BranchHistoryResponse(branch, entries));
     } catch (BranchOperationException e) {
       throw notFound(e.getMessage());
     } catch (IOException e) {
